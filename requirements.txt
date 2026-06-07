@@ -1,0 +1,5 @@
+fastapi>=0.110
+uvicorn[standard]>=0.27
+python-dotenv>=1.0
+# ffmpeg/ffprobe 는 PATH 에 별도 설치 (winget install Gyan.FFmpeg)
+# LLM은 영상공방의 OAuth 백엔드(codex/agy)를 재사용 — 별도 패키지 불필요

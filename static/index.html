@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>쇼츠공방 — 세로 쇼츠 메이커</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <h1>🎬 쇼츠공방 <small>세로 9:16 쇼츠 메이커</small></h1>
+  <span id="llmChip" class="chip" style="cursor:pointer" title="LLM 계정 설정">LLM 확인 중…</span>
+</header>
+
+<main>
+  <!-- LLM 계정 설정 -->
+  <section class="card" id="llmPanel" style="display:none">
+    <h2>⚙ LLM 계정</h2>
+    <div class="row">
+      <div><label>공급자</label>
+        <select id="llmProvider">
+          <option value="codex">OpenAI (ChatGPT)</option>
+          <option value="agy">Antigravity (Gemini)</option>
+        </select></div>
+      <div style="flex:2"><label>상태</label>
+        <div id="llmInfo" class="hint">확인 중…</div></div>
+    </div>
+    <div class="toolbar">
+      <button id="llmLoginBtn" class="ghost">🔑 로그인 (터미널)</button>
+      <button id="llmLogoutBtn" class="ghost">🚪 로그아웃</button>
+      <button id="llmRefreshBtn" class="ghost">↻ 새로고침</button>
+    </div>
+    <p class="hint">로그인하면 새 터미널 창이 열립니다(브라우저 OAuth). 다른 계정으로 바꾸려면 <b>로그아웃 → 로그인</b>.</p>
+  </section>
+
+  <!-- 1) 번들 -->
+  <section class="card">
+    <h2>① 번들 선택</h2>
+    <div class="row">
+      <div style="flex:3"><label>번들</label>
+        <select id="bundleSel"></select></div>
+      <div><label>&nbsp;</label><button id="refreshBtn" class="ghost">새로고침</button></div>
+    </div>
+    <div class="row">
+      <div><label>경로 직접 입력(선택)</label><input id="bundlePath" type="text" placeholder="D:\...\chNN_bundle"></div>
+    </div>
+    <div class="row">
+      <div><label>길이(초)</label>
+        <select id="duration"><option>30</option><option>20</option><option>15</option></select></div>
+      <div><label>씬 개수</label>
+        <select id="targetBeats"><option>5</option><option selected>7</option><option>9</option></select></div>
+      <div><label>음성 속도</label>
+        <select id="speed">
+          <option value="1.0">1.0 (원본)</option>
+          <option value="1.1" selected>1.1 (쇼츠 권장)</option>
+          <option value="1.15">1.15</option>
+          <option value="1.2">1.2</option>
+        </select></div>
+      <div><label>목소리 (10종)</label>
+        <select id="voice">
+          <option value="F4" selected>F4 밝은 여성 (쇼츠 추천)</option>
+          <option value="F1">F1 젊은 여성</option>
+          <option value="F2">F2 따뜻한 여성</option>
+          <option value="F3">F3 차분한 여성</option>
+          <option value="F5">F5 중후한 여성</option>
+          <option value="M1">M1 젊은 남성</option>
+          <option value="M2">M2 따뜻한 남성</option>
+          <option value="M3">M3 차분한 남성</option>
+          <option value="M4">M4 활기찬 남성</option>
+          <option value="M5">M5 깊은 남성 (본편 톤)</option>
+        </select></div>
+      <div><label>&nbsp;</label>
+        <button id="composeBtn">✨ 씬 자동 구성</button></div>
+    </div>
+    <p class="hint" id="bundleHint"></p>
+  </section>
+
+  <!-- 작업 공간: 왼쪽 씬 편집 / 오른쪽 대본·생성·메타 -->
+  <div id="workspace" style="display:none; gap:1rem; align-items:flex-start">
+    <!-- LEFT: 씬 편집 -->
+    <div style="flex:1.15; min-width:0">
+      <section class="card" id="editSection">
+        <h2>② 씬 구성 · 문구 편집 <small>상단 후크 / 중간 음성 자막 (하단 텍스트·해시태그는 오른쪽 ③)</small></h2>
+        <div class="row" style="margin-bottom:.5rem">
+          <div style="flex:3"><label>💾 보관된 AI 후크 (선택하면 전 씬 적용)</label>
+            <select id="hookStore"><option value="">— 후크 보관함 —</option></select></div>
+          <div><label>&nbsp;</label><button id="hookSaveBtn" class="ghost">💾 현재 후크 저장</button></div>
+        </div>
+        <div class="row" style="margin-bottom:.7rem">
+          <div><label>후크1 글자 크기</label>
+            <select id="hookScale1">
+              <option value="0.8">작게</option><option value="1.0" selected>보통</option>
+              <option value="1.25">크게</option><option value="1.5">아주 크게</option>
+            </select></div>
+          <div><label>후크2 글자 크기</label>
+            <select id="hookScale2">
+              <option value="0.8">작게</option><option value="1.0" selected>보통</option>
+              <option value="1.25">크게</option><option value="1.5">아주 크게</option>
+            </select></div>
+          <div><label>후크1 색</label><input id="hookColor1" type="color" value="#111111" style="height:38px;padding:2px"></div>
+          <div><label>후크2 색</label><input id="hookColor2" type="color" value="#F4511E" style="height:38px;padding:2px"></div>
+        </div>
+        <div id="beats"></div>
+        <div class="toolbar">
+          <button id="aiFillHookBtn" class="ghost">🔁 AI 후크 다시</button>
+          <button id="aiFillCapBtn" class="ghost">🔁 AI 자막 다시</button>
+          <button id="aiReviewBtn" class="ghost">✅ LLM 최종검토</button>
+          <button id="addSceneBtn" class="ghost">＋ 씬 추가</button>
+          <span id="aiStatus" class="hint">↑↓ 순서 · ✕ 삭제 · ✨ 칸별 AI 제안</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT: 대본 + 생성 + 메타 -->
+    <div style="flex:1; min-width:0; position:sticky; top:64px; max-height:calc(100vh - 80px); overflow:auto">
+      <div class="card" id="scriptCard">
+        <div class="hint" style="margin-bottom:.3rem">📜 전체 음성 대본 (= 중간 음성 자막, 말로 읽힘)</div>
+        <pre id="scriptView" class="logs" style="max-height:28vh"></pre>
+      </div>
+
+      <section class="card" id="renderSection">
+        <h2>③ 쇼츠 생성</h2>
+        <div class="row">
+          <div style="flex:3"><label>원본 영상 URL (CTA·메타용)</label>
+            <input id="originalUrl" type="text" placeholder="https://youtu.be/..."></div>
+        </div>
+        <div class="row">
+          <div style="flex:3"><label>하단 텍스트 (해시태그)</label>
+            <input id="hashtags" type="text" placeholder="#쇼츠 #세계사"></div>
+        </div>
+        <div class="toolbar">
+          <button id="ttsBtn" class="ghost">🎙️ 음성 싱크 재생성</button>
+          <span id="ttsStatus" class="hint">자막대로 새 음성 + 롱폼 음소거 배치</span>
+        </div>
+        <div class="bar" id="ttsBar" style="display:none"><div id="ttsBarFill"></div></div>
+        <pre id="ttsLogs" class="logs" style="display:none; max-height:140px"></pre>
+        <div class="toolbar" style="margin-top:.6rem">
+          <button id="renderBtn">🎬 쇼츠 생성</button>
+          <span id="renderStatus" class="hint"></span>
+        </div>
+        <div class="bar" id="bar" style="display:none"><div id="barFill"></div></div>
+        <pre id="renderLogs" class="logs" style="display:none"></pre>
+        <div id="previewWrap" style="display:none">
+          <video id="player" controls></video>
+          <div><a id="dl" href="#" download><button class="ghost">⬇ 다운로드</button></a></div>
+        </div>
+      </section>
+
+      <section class="card" id="metaSection">
+        <h2>④ 유튜브 쇼츠 메타</h2>
+        <div class="toolbar">
+          <button id="metaBtn" class="ghost">📺 메타 생성</button>
+          <button id="metaCopyBtn" class="ghost" style="display:none">📋 복사</button>
+          <span id="metaStatus" class="hint"></span>
+        </div>
+        <pre id="metaOut" class="logs" style="display:none"></pre>
+      </section>
+    </div>
+  </div>
+</main>
+
+<!-- 씬 추가 모달 -->
+<div id="modal" class="modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-head"><b>씬 추가</b><button id="modalClose" class="ghost">닫기</button></div>
+    <div id="sceneList" class="scene-list"></div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
