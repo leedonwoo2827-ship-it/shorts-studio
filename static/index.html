@@ -52,9 +52,10 @@
       <div><label>음성 속도</label>
         <select id="speed">
           <option value="1.0">1.0 (원본)</option>
-          <option value="1.1" selected>1.1 (쇼츠 권장)</option>
-          <option value="1.15">1.15</option>
-          <option value="1.2">1.2</option>
+          <option value="1.1">1.1 (살짝)</option>
+          <option value="1.2" selected>1.2 (쇼츠 권장·체감↑)</option>
+          <option value="1.3">1.3 (빠릿)</option>
+          <option value="1.4">1.4 (아주 빠름)</option>
         </select></div>
       <div><label>목소리 (10종)</label>
         <select id="voice">
@@ -105,9 +106,11 @@
           <button id="aiFillHookBtn" class="ghost">🔁 AI 후크 다시</button>
           <button id="aiFillCapBtn" class="ghost">🔁 AI 자막 다시</button>
           <button id="aiReviewBtn" class="ghost">✅ LLM 최종검토</button>
+          <button id="verifyBtn" class="ghost">🔎 전체 내용 검증</button>
           <button id="addSceneBtn" class="ghost">＋ 씬 추가</button>
-          <span id="aiStatus" class="hint">↑↓ 순서 · ✕ 삭제 · ✨ 칸별 AI 제안</span>
+          <span id="aiStatus" class="hint">↑↓ 순서 · ✕ 삭제 · 자막칸 🔎로 그 씬만 검증</span>
         </div>
+        <pre id="verifyOut" class="logs" style="display:none"></pre>
       </section>
     </div>
 

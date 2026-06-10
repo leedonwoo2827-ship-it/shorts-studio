@@ -334,6 +334,22 @@ async def add_hook(req: HookReq):
     return {"hooks": _save_hook(req.hook)}
 
 
+class VerifyRequest(BaseModel):
+    scenes: List[Dict[str, Any]] = []
+
+
+@app.post("/api/verify")
+async def verify(req: VerifyRequest):
+    if not llm.available():
+        raise HTTPException(503, "LLM 미로그인 (상단 LLM 칩에서 로그인)")
+    try:
+        return await asyncio.to_thread(llm.verify_captions, req.scenes)
+    except llm.LLMUnavailable as e:
+        raise HTTPException(503, str(e))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"LLM 오류: {e}")
+
+
 @app.post("/api/meta")
 async def meta(req: MetaRequest):
     if not llm.available():
@@ -484,9 +500,20 @@ async def video(job_id: str):
 
 
 # ---------------- static SPA ----------------
+def _asset_ver(name: str) -> str:
+    try:
+        return str(int((ROOT / "static" / name).stat().st_mtime))
+    except Exception:
+        return "1"
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    return (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+    html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+    # 정적 파일이 바뀌면 자동으로 새로 받게 캐시버스팅(파일 mtime)
+    html = html.replace("/static/style.css", f"/static/style.css?v={_asset_ver('style.css')}")
+    html = html.replace("/static/app.js", f"/static/app.js?v={_asset_ver('app.js')}")
+    return html
 
 
 app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")

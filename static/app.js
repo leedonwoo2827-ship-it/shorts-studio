@@ -85,7 +85,8 @@ async function compose() {
     renderBeats();
     $("workspace").style.display = "flex";
     $("bundleHint").textContent = `자동 구성 완료 — 씬 ${spec.beats.length}개`;
-    aiFill({});   // AI로 후크·해시태그·자막 자동 채움(로그인 시)
+    await aiFill({});        // AI로 후크·해시태그·자막 자동 채움(로그인 시)
+    await verifyContent();   // 이어서 자동 검토 → 각 자막 밑에 근거 표시
   } catch (e) { $("bundleHint").textContent = "실패: " + e.message; }
   finally { $("composeBtn").disabled = false; }
 }
@@ -160,12 +161,15 @@ function renderBeats() {
       <div class="fields">
         <div class="fieldrow">
           <div><label>상단 후크 <span class="hint">(1줄=검정 / Enter 후 2줄=주황)</span></label><textarea data-k="hook" rows="2">${esc(b.hook)}</textarea></div>
-          <button class="ghost mini" data-a="sugHook">✨</button>
         </div>
         <div class="fieldrow">
           <div><label>음성 자막 <span class="hint">(중간 · 음성으로 읽힘)</span></label><textarea data-k="caption" rows="2">${esc(b.caption)}</textarea></div>
-          <button class="ghost mini" data-a="sugCap">✨</button>
+          <button class="ghost mini" data-a="verify" title="이 씬 자막을 원본과 대조해 사실 검토">🔎 검토</button>
         </div>
+        ${b._verify ? `<div class="verify-result ${b._verify.ok ? "ok" : "ng"}">
+          <div class="vr-head">${b._verify.ok ? "✓ 사실에 맞음" : "⚠ 어색"}${b._verify.reason ? ` · ${esc(b._verify.reason)}` : ""}</div>
+          ${(b._verify.alts || []).map((a, ai) => `<button class="alt" data-a="alt" data-i="${ai}" title="클릭하면 이 문장으로 자막 교체">${esc(a)}</button>`).join("")}
+        </div>` : ""}
         <div class="fieldrow">
           <div style="flex:0 0 120px"><label>길이(초)</label><input data-k="duration" type="number" step="0.1" value="${b.duration}"></div>
           <div class="hint">씬 #${b.scene_index}</div>
@@ -186,8 +190,13 @@ function renderBeats() {
     el.querySelector('[data-a="del"]').onclick = () => { STATE.spec.beats.splice(i, 1); renderBeats(); };
     el.querySelector('[data-a="up"]').onclick = () => { if (i > 0) { const a = STATE.spec.beats; [a[i - 1], a[i]] = [a[i], a[i - 1]]; renderBeats(); } };
     el.querySelector('[data-a="down"]').onclick = () => { const a = STATE.spec.beats; if (i < a.length - 1) { [a[i + 1], a[i]] = [a[i], a[i + 1]]; renderBeats(); } };
-    el.querySelector('[data-a="sugHook"]').onclick = (ev) => suggest(ev.target, i, "hook");
-    el.querySelector('[data-a="sugCap"]').onclick = (ev) => suggest(ev.target, i, "caption");
+    el.querySelector('[data-a="verify"]').onclick = (ev) => verifyOne(i, ev.target);
+    el.querySelectorAll('[data-a="alt"]').forEach(btn => {
+      btn.onclick = () => {
+        const ai = +btn.dataset.i, v = STATE.spec.beats[i]._verify;
+        if (v && v.alts && v.alts[ai] != null) { STATE.spec.beats[i].caption = v.alts[ai]; delete STATE.spec.beats[i]._verify; renderBeats(); }
+      };
+    });
     box.appendChild(el);
   });
   updateScriptView();
@@ -207,6 +216,32 @@ async function suggest(btn, i, kind) {
     if (kind === "hook") beat.hook = d.text; else beat.caption = d.text;
     renderBeats();
   } catch (e) { alert("AI 제안 실패: " + e.message); btn.textContent = old; btn.disabled = false; }
+}
+
+// 내용 검증 (원본 내레이션 대비 사실 점검·수정)
+async function verifyOne(i, btn) {
+  const b = STATE.spec.beats[i]; if (!b) return;
+  const s = STATE.allScenes.find(x => x.scene_index === b.scene_index) || {};
+  btn.disabled = true; btn.textContent = "검토…";
+  try {
+    const d = await api("/api/verify", { method: "POST", body: JSON.stringify({ scenes: [{ scene_index: b.scene_index, narration: s.narration || "", caption: b.caption }] }) });
+    const v = d[b.scene_index];
+    if (v) { b._verify = v; renderBeats(); }   // 결과를 자막 밑에 인라인 표시
+    else { btn.disabled = false; btn.textContent = "🔎 검토"; }
+  } catch (e) { $("aiStatus").textContent = "검토 실패: " + e.message; btn.disabled = false; btn.textContent = "🔎 검토"; }
+}
+async function verifyContent() {
+  if (!STATE.spec.beats.length) return;
+  const scenes = STATE.spec.beats.map(b => { const s = STATE.allScenes.find(x => x.scene_index === b.scene_index) || {}; return { scene_index: b.scene_index, narration: s.narration || "", caption: b.caption }; });
+  $("verifyBtn").disabled = true; $("aiStatus").textContent = "전체 내용 검증 중…";
+  try {
+    const d = await api("/api/verify", { method: "POST", body: JSON.stringify({ scenes }) });
+    let ng = 0;
+    STATE.spec.beats.forEach(b => { const v = d[b.scene_index]; if (v) { b._verify = v; if (!v.ok) ng++; } });
+    renderBeats();
+    $("aiStatus").textContent = `🔎 검토 완료 — 각 자막 밑 근거 확인` + (ng ? ` (어색 ${ng}개, 대안 클릭=교체)` : " (모두 사실 OK)");
+  } catch (e) { $("aiStatus").textContent = "검증 실패: " + e.message; }
+  finally { $("verifyBtn").disabled = false; }
 }
 
 // ---------- add scene modal ----------
@@ -337,6 +372,7 @@ $("composeBtn").onclick = compose;
 $("aiFillHookBtn").onclick = () => aiFill({ only: "hook" });
 $("aiFillCapBtn").onclick = () => aiFill({ only: "captions" });
 $("aiReviewBtn").onclick = () => aiFill({ review: true });
+$("verifyBtn").onclick = verifyContent;
 $("hookStore").onchange = (e) => applyHookToAll(e.target.value);
 $("hookSaveBtn").onclick = saveCurrentHook;
 $("addSceneBtn").onclick = openModal;

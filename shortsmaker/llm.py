@@ -121,6 +121,40 @@ def gen_fill(title: str, scenes: list, review_of: dict | None = None,
     return _parse_fill(complete(prompt, max_tokens=1000))
 
 
+def verify_captions(scenes: list) -> dict:
+    """각 씬의 [원본 내레이션] 대비 [현재 자막]의 사실 정확성 점검 + 대안 제시.
+
+    scenes: [{scene_index, narration, caption}].
+    반환: {idx: {ok: bool, reason: 짧은평가, alts: [사실에 맞는 대안문장,...]}}.
+    """
+    items = "\n\n".join(
+        f"[씬{s['scene_index']}]\n원본: {(s.get('narration') or '')[:220]}\n자막: {s.get('caption') or ''}"
+        for s in scenes)
+    prompt = (
+        "당신은 역사 콘텐츠 '사실 검증 편집자'입니다. 각 씬의 [원본]과 [자막]을 대조해 사실 정확성을 판단하세요.\n"
+        "- 자막이 원본 사실을 왜곡하거나 오해를 줄 소지가 있으면 NG, 정확하면 OK.\n"
+        "- 평가/이유는 아주 짧게(한 구절, 설명 길게 X).\n"
+        "- 그리고 원본에 충실하고 사실에 맞는 구어체 대안 문장을 2~3개 제시(NG면 고친 문장, OK면 더 나은 표현).\n\n"
+        "## 출력 형식 (씬마다 정확히 한 줄, 다른 말 없이)\n"
+        "씬N | OK 또는 NG | 짧은 평가나 이유 | 대안1 ;; 대안2 ;; 대안3\n\n"
+        + items
+    )
+    raw = complete(prompt, max_tokens=1300)
+    out: dict = {}
+    for line in (raw or "").splitlines():
+        m = re.match(r"^씬\s*(\d+)\s*[|｜](.+)$", line.strip())
+        if not m:
+            continue
+        idx = int(m.group(1))
+        parts = [p.strip() for p in m.group(2).split("|")]
+        status = (parts[0] if parts else "").upper()
+        reason = parts[1] if len(parts) > 1 else ""
+        alts_str = parts[2] if len(parts) > 2 else ""
+        alts = [a.strip() for a in re.split(r";;|；；", alts_str) if a.strip()]
+        out[idx] = {"ok": status.startswith("OK"), "reason": reason, "alts": alts}
+    return out
+
+
 def shorts_meta(script_or_beats: str, original_url: str = "", title_hint: str = "") -> str:
     link = (original_url or "").strip() or "(원본 영상 링크)"
     return complete(
