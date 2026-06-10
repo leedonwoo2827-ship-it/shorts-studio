@@ -155,6 +155,20 @@ def verify_captions(scenes: list) -> dict:
     return out
 
 
+def flow_review(title: str, hook: str, lines: list) -> str:
+    """전체 흐름 검토(읽기 전용). 내용을 새로 쓰지 않고 흐름·중복·연결·CTA를 짧게 평가."""
+    body = "\n".join(f"{i + 1}. {l}" for i, l in enumerate(lines))
+    return complete(
+        "아래는 세로 쇼츠의 상단 후크와 씬별 음성 자막(순서대로)입니다. 전체 '흐름'을 검토하세요.\n"
+        "★ 절대 새 자막을 만들지 말고(다시 쓰기 금지), 평가만 합니다.\n"
+        "관점: 도입(후크)→전개→마무리(CTA)의 자연스러움, 씬 간 연결, 중복·비약·논리.\n"
+        "출력: 문제 없으면 '✓ 전체 흐름 양호' 한 줄. 문제 있으면 '씬N: (무엇이 어떻게)' 식으로 "
+        "5줄 이내로 짧게. 설명 길게 X.\n\n"
+        f"제목: {title}\n후크: {hook}\n\n[자막 흐름]\n{body}",
+        max_tokens=500,
+    )
+
+
 def shorts_meta(script_or_beats: str, original_url: str = "", title_hint: str = "") -> str:
     link = (original_url or "").strip() or "(원본 영상 링크)"
     return complete(

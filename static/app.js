@@ -105,7 +105,7 @@ async function aiFill(opts = {}) {
     const h = (STATE.spec.beats[0]?.hook || "").split(/[\r\n]+/);
     review_of = { hook1: h[0] || "", hook2: h[1] || "", hashtags: $("hashtags").value, captions: caps };
   }
-  const btns = ["aiFillHookBtn", "aiFillCapBtn", "aiReviewBtn"];
+  const btns = ["aiFillHookBtn", "aiFillCapBtn"];
   btns.forEach(id => { if ($(id)) $(id).disabled = true; });
   $("aiStatus").textContent = review ? "최종검토 중…" : (only === "hook" ? "AI 후크 생성 중…" : only === "captions" ? "AI 자막 생성 중…" : "AI 후크·자막 생성 중…");
   try {
@@ -229,6 +229,19 @@ async function verifyOne(i, btn) {
     if (v) { b._verify = v; renderBeats(); }   // 결과를 자막 밑에 인라인 표시
     else { btn.disabled = false; btn.textContent = "🔎 검토"; }
   } catch (e) { $("aiStatus").textContent = "검토 실패: " + e.message; btn.disabled = false; btn.textContent = "🔎 검토"; }
+}
+// 흐름 검토 (읽기 전용 — 내용 안 바꿈)
+async function flowReview() {
+  if (!STATE.spec.beats.length) return;
+  const lines = STATE.spec.beats.map(b => (b.caption || "").replace(/\n/g, " "));
+  const hook = (STATE.spec.beats[0] ? STATE.spec.beats[0].hook : "").replace(/\n/g, " / ");
+  $("flowBtn").disabled = true; $("aiStatus").textContent = "흐름 검토 중… (내용은 그대로)";
+  try {
+    const d = await api("/api/flow-review", { method: "POST", body: JSON.stringify({ title: STATE.spec.title, hook, lines }) });
+    const out = $("verifyOut"); out.textContent = "[흐름 검토]\n" + (d.review || "(결과 없음)"); out.style.display = "block";
+    $("aiStatus").textContent = "✓ 흐름 검토 완료 — 내용은 그대로, 아래 평가 참고";
+  } catch (e) { $("aiStatus").textContent = "흐름 검토 실패: " + e.message; }
+  finally { $("flowBtn").disabled = false; }
 }
 async function verifyContent() {
   if (!STATE.spec.beats.length) return;
@@ -371,7 +384,7 @@ $("refreshBtn").onclick = refreshBundles;
 $("composeBtn").onclick = compose;
 $("aiFillHookBtn").onclick = () => aiFill({ only: "hook" });
 $("aiFillCapBtn").onclick = () => aiFill({ only: "captions" });
-$("aiReviewBtn").onclick = () => aiFill({ review: true });
+$("flowBtn").onclick = flowReview;
 $("verifyBtn").onclick = verifyContent;
 $("hookStore").onchange = (e) => applyHookToAll(e.target.value);
 $("hookSaveBtn").onclick = saveCurrentHook;
