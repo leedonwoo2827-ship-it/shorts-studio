@@ -52,7 +52,7 @@
 | `GET /api/image?path=` | 번들 이미지 미리보기 |
 | `POST /api/ai-fill` | 후크·해시태그·자막 생성(only=hook|captions) |
 | `POST /api/verify` | 씬별 사실 검증(평가+대안) |
-| `POST /api/flow-review` | 전체 흐름 평가(읽기 전용) |
+| `POST /api/tidy` | 전체 자막 원본 근거 1회 재작성(독립 완결 문장·흐름 정리) |
 | `POST /api/tts-sync` | 자막→음성 생성·concat + 비주얼 정보(잡) |
 | `POST /api/render` | 9:16 합성(잡) |
 | `GET /api/video/{job}` / `shorts 미리보기` | 결과 서빙 |

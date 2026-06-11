@@ -334,18 +334,17 @@ async def add_hook(req: HookReq):
     return {"hooks": _save_hook(req.hook)}
 
 
-class FlowReviewRequest(BaseModel):
+class TidyRequest(BaseModel):
     title: str = ""
-    hook: str = ""
-    scenes: List[Dict[str, Any]] = []
+    scenes: List[Dict[str, Any]] = []   # [{scene_index, narration, caption}]
 
 
-@app.post("/api/flow-review")
-async def flow_review(req: FlowReviewRequest):
+@app.post("/api/tidy")
+async def tidy(req: TidyRequest):
     if not llm.available():
         raise HTTPException(503, "LLM 미로그인 (상단 LLM 칩에서 로그인)")
     try:
-        return await asyncio.to_thread(llm.flow_review, req.title, req.hook, req.scenes)
+        return await asyncio.to_thread(llm.tidy_all, req.title, req.scenes)
     except llm.LLMUnavailable as e:
         raise HTTPException(503, str(e))
     except Exception as e:  # noqa: BLE001

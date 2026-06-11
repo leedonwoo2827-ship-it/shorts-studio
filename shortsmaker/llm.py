@@ -20,9 +20,14 @@ from . import cli_llm  # noqa: E402  내장 폴백
 from . import llm_kit  # noqa: E402  영상공방 브리지
 
 LLMUnavailable = llm_kit.LLMUnavailable
+
+# 모든 자막 생성 공통: 독립 완결 문장 원칙(씬 간 의존 제거 → 흐름 수렴)
+_INDEP = ("각 자막은 그 자체로 완결된 독립 문장입니다. 주어와 서술어를 갖추고, 앞/뒤 씬을 가리키는 "
+          "접속어·지시어('이에 맞서·뒤이어·그래서·결국·그·이·저·이런·이렇게' 등)에 의존하지 마세요. "
+          "어떤 순서로 읽어도 그 문장 하나만으로 이해돼야 합니다.")
 __all__ = ["LLMUnavailable", "available", "status", "complete", "set_provider", "logout",
            "login_cmd", "launch_login", "suggest_hook", "suggest_caption",
-           "gen_fill", "verify_captions", "flow_review", "shorts_meta"]
+           "gen_fill", "verify_captions", "tidy_all", "shorts_meta"]
 
 
 def _use_bridge() -> bool:
@@ -115,6 +120,7 @@ def suggest_caption(narration: str, current: str = "") -> str:
         "다음 장면을 세로 쇼츠에서 '말하듯' 들려줄 구어체 나레이션 한 문장으로 만들어 주세요.\n"
         "신문 제목·명사 끝맺음 금지(예: '~크리스트교' X). 사람이 말하듯 완결된 구어체 문장으로, "
         "어미는 '~했어요/~거든요/~인데요/~답니다/질문형/감탄형' 등에서 자연스럽게 골라 22~40자.\n"
+        f"{_INDEP}\n"
         "따옴표·설명 없이 문구만 출력.\n\n"
         + (f"[현재 문구]\n{current}\n\n" if current.strip() else "")
         + f"[내레이션]\n{narration[:600]}",
@@ -177,6 +183,7 @@ def gen_fill(title: str, scenes: list, review_of: dict | None = None,
         "당신은 유튜브 쇼츠 '내레이션 대본' 작가입니다. 아래 씬들로 세로 쇼츠용 문구를 만드세요.\n"
         "후크는 끝까지 보게 만드는 강한 한 방(짧게). 씬 자막은 **음성으로 읽히는 구어체 나레이션**이라 "
         "신문 제목처럼 명사로 끝내지 말고, 사람이 말하듯 완결된 문장으로 쓰세요.\n"
+        f"★ 독립성: {_INDEP}\n"
         "★ 중요: 문장 끝맺음(어미)을 줄마다 다르게 섞으세요. '~했죠/~했습니다'만 반복하지 말고 "
         "'~했어요 / ~거든요 / ~인데요 / ~답니다 / ~게 됩니다 / 질문형(?) / 감탄형(!)' 등을 번갈아 쓰고, "
         "같은 어미가 연속으로 나오지 않게 하세요.\n\n"
@@ -196,7 +203,8 @@ def verify_captions(scenes: list) -> dict:
         "당신은 역사 콘텐츠 '사실 검증 편집자'입니다. 각 씬의 [원본]과 [자막]을 대조해 사실 정확성을 판단하세요.\n"
         "- 자막이 원본 사실을 왜곡하거나 오해를 줄 소지가 있으면 NG, 정확하면 OK.\n"
         "- 평가/이유는 아주 짧게(한 구절, 설명 길게 X).\n"
-        "- 그리고 원본에 충실하고 사실에 맞는 구어체 대안 문장을 2~3개 제시(NG면 고친 문장, OK면 더 나은 표현).\n\n"
+        "- 그리고 원본에 충실하고 사실에 맞는 구어체 대안 문장을 2~3개 제시(NG면 고친 문장, OK면 더 나은 표현).\n"
+        f"- {_INDEP}\n\n"
         "## 출력 형식 (씬마다 정확히 한 줄, 다른 말 없이)\n"
         "씬N | OK 또는 NG | 짧은 평가나 이유 | 대안1 ;; 대안2 ;; 대안3\n\n"
         + items
@@ -217,32 +225,31 @@ def verify_captions(scenes: list) -> dict:
     return out
 
 
-def flow_review(title: str, hook: str, scenes: list) -> dict:
-    """전체 흐름(씬 간 연결·비약·중복) 검토 + 흐름상 어색한 씬의 '매끄럽게 고친 대안 자막' 제시.
+def tidy_all(title: str, scenes: list) -> dict:
+    """모든 자막을 원본 근거로 1회 재작성 — 독립 완결 문장 + 흐름·중복 정리, 사실 변경 금지.
 
-    scenes: [{scene_index, caption}](순서대로). 반환: {idx: {ok, reason, alts}} — 문제 씬만.
+    scenes: [{scene_index, narration, caption}]. 반환: {idx: 새 자막}.
+    개별 패치(접속어 의존) 루프 대신 전체를 한 번에 일관 재작성 → 흐름이 수렴한다.
     """
-    body = "\n".join(f"씬{s['scene_index']}: {s.get('caption') or ''}" for s in scenes)
+    items = "\n\n".join(
+        f"[씬{s['scene_index']}]\n원본: {(s.get('narration') or '')[:240]}\n현재: {s.get('caption') or ''}"
+        for s in scenes)
     prompt = (
-        "아래는 세로 쇼츠의 상단 후크와 씬별 음성 자막(순서대로)입니다. 전체 '흐름'을 검토하세요.\n"
-        "관점: 도입(후크)→전개→마무리의 자연스러움, 앞 씬과의 연결, 갑작스런 비약·주어 누락·중복.\n"
-        "흐름상 어색한 씬을 찾고, 그 씬을 **앞뒤와 자연스럽게 이어지도록 고친 구어체 대안 자막**을 "
-        "1~2개 제시하세요(사실은 유지, 새 사실 추가 금지).\n\n"
-        "## 출력 형식 (문제 있는 씬만, 한 줄씩, 다른 말 없이)\n"
-        "씬N | 무엇이 어떻게 어색한지 짧게 | 매끄럽게 고친 자막1 ;; 자막2\n"
-        "문제가 전혀 없으면 'OK' 한 줄만.\n\n"
-        f"제목: {title}\n후크: {hook}\n\n[자막 흐름]\n{body}"
+        "아래 세로 쇼츠의 씬별 음성 자막을 전체적으로 다듬어 다시 쓰세요.\n"
+        f"1) {_INDEP}\n"
+        "2) 전체 흐름·중복을 정리하되 씬 순서는 그대로 둡니다. 비약 없이 자연스럽게.\n"
+        "3) ★ 사실은 각 씬의 [원본]에 충실하게 — 원본에 없는 사실·관계를 추가하거나 바꾸지 마세요(왜곡 금지).\n"
+        "4) 구어체, 한 문장, 22~40자. 어미는 줄마다 다양하게.\n\n"
+        "## 출력 형식 (씬마다 정확히 한 줄, 다른 말 없이)\n"
+        "씬N: 다시 쓴 자막\n\n"
+        + items
     )
-    raw = complete(prompt, max_tokens=900)
+    raw = complete(prompt, max_tokens=1500)
     out: dict = {}
     for line in (raw or "").splitlines():
-        m = re.match(r"^씬\s*(\d+)\s*[|｜](.+)$", line.strip())
-        if not m:
-            continue
-        parts = [p.strip() for p in m.group(2).split("|")]
-        reason = parts[0] if parts else ""
-        alts = [a.strip() for a in re.split(r";;|；；", parts[1])] if len(parts) > 1 else []
-        out[int(m.group(1))] = {"ok": False, "reason": reason, "alts": [a for a in alts if a]}
+        m = re.match(r"^씬\s*(\d+)\s*[:：]\s*(.+)$", line.strip())
+        if m:
+            out[int(m.group(1))] = m.group(2).strip()
     return out
 
 
