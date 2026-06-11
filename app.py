@@ -337,7 +337,7 @@ async def add_hook(req: HookReq):
 class FlowReviewRequest(BaseModel):
     title: str = ""
     hook: str = ""
-    lines: List[str] = []
+    scenes: List[Dict[str, Any]] = []
 
 
 @app.post("/api/flow-review")
@@ -345,7 +345,7 @@ async def flow_review(req: FlowReviewRequest):
     if not llm.available():
         raise HTTPException(503, "LLM 미로그인 (상단 LLM 칩에서 로그인)")
     try:
-        return {"review": await asyncio.to_thread(llm.flow_review, req.title, req.hook, req.lines)}
+        return await asyncio.to_thread(llm.flow_review, req.title, req.hook, req.scenes)
     except llm.LLMUnavailable as e:
         raise HTTPException(503, str(e))
     except Exception as e:  # noqa: BLE001

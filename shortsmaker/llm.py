@@ -217,17 +217,33 @@ def verify_captions(scenes: list) -> dict:
     return out
 
 
-def flow_review(title: str, hook: str, lines: list) -> str:
-    body = "\n".join(f"{i + 1}. {l}" for i, l in enumerate(lines))
-    return complete(
+def flow_review(title: str, hook: str, scenes: list) -> dict:
+    """전체 흐름(씬 간 연결·비약·중복) 검토 + 흐름상 어색한 씬의 '매끄럽게 고친 대안 자막' 제시.
+
+    scenes: [{scene_index, caption}](순서대로). 반환: {idx: {ok, reason, alts}} — 문제 씬만.
+    """
+    body = "\n".join(f"씬{s['scene_index']}: {s.get('caption') or ''}" for s in scenes)
+    prompt = (
         "아래는 세로 쇼츠의 상단 후크와 씬별 음성 자막(순서대로)입니다. 전체 '흐름'을 검토하세요.\n"
-        "★ 절대 새 자막을 만들지 말고(다시 쓰기 금지), 평가만 합니다.\n"
-        "관점: 도입(후크)→전개→마무리(CTA)의 자연스러움, 씬 간 연결, 중복·비약·논리.\n"
-        "출력: 문제 없으면 '✓ 전체 흐름 양호' 한 줄. 문제 있으면 '씬N: (무엇이 어떻게)' 식으로 "
-        "5줄 이내로 짧게. 설명 길게 X.\n\n"
-        f"제목: {title}\n후크: {hook}\n\n[자막 흐름]\n{body}",
-        max_tokens=500,
+        "관점: 도입(후크)→전개→마무리의 자연스러움, 앞 씬과의 연결, 갑작스런 비약·주어 누락·중복.\n"
+        "흐름상 어색한 씬을 찾고, 그 씬을 **앞뒤와 자연스럽게 이어지도록 고친 구어체 대안 자막**을 "
+        "1~2개 제시하세요(사실은 유지, 새 사실 추가 금지).\n\n"
+        "## 출력 형식 (문제 있는 씬만, 한 줄씩, 다른 말 없이)\n"
+        "씬N | 무엇이 어떻게 어색한지 짧게 | 매끄럽게 고친 자막1 ;; 자막2\n"
+        "문제가 전혀 없으면 'OK' 한 줄만.\n\n"
+        f"제목: {title}\n후크: {hook}\n\n[자막 흐름]\n{body}"
     )
+    raw = complete(prompt, max_tokens=900)
+    out: dict = {}
+    for line in (raw or "").splitlines():
+        m = re.match(r"^씬\s*(\d+)\s*[|｜](.+)$", line.strip())
+        if not m:
+            continue
+        parts = [p.strip() for p in m.group(2).split("|")]
+        reason = parts[0] if parts else ""
+        alts = [a.strip() for a in re.split(r";;|；；", parts[1])] if len(parts) > 1 else []
+        out[int(m.group(1))] = {"ok": False, "reason": reason, "alts": [a for a in alts if a]}
+    return out
 
 
 def shorts_meta(script_or_beats: str, original_url: str = "", title_hint: str = "") -> str:

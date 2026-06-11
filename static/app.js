@@ -177,7 +177,7 @@ function renderBeats() {
         </div>` : ""}
         <div class="fieldrow">
           <div style="flex:0 0 120px"><label>길이(초)</label><input data-k="duration" type="number" step="0.1" value="${b.duration}"></div>
-          <div class="hint">씬 #${b.scene_index}</div>
+          <div style="font-weight:700;color:var(--fg);font-size:.95rem">씬 #${b.scene_index}</div>
         </div>
       </div>
       <div class="ctrls">
@@ -235,16 +235,29 @@ async function verifyOne(i, btn) {
     else { btn.disabled = false; btn.textContent = "🔎 검토"; }
   } catch (e) { $("aiStatus").textContent = "검토 실패: " + e.message; btn.disabled = false; btn.textContent = "🔎 검토"; }
 }
-// 흐름 검토 (읽기 전용 — 내용 안 바꿈)
+// 흐름 검토 — 씬 간 연결을 보고, 어색한 씬엔 '매끄럽게 고친 대안'을 자막 밑에 표시(클릭=교체)
 async function flowReview() {
   if (!STATE.spec.beats.length) return;
-  const lines = STATE.spec.beats.map(b => (b.caption || "").replace(/\n/g, " "));
+  const scenes = STATE.spec.beats.map(b => ({ scene_index: b.scene_index, caption: (b.caption || "").replace(/\n/g, " ") }));
   const hook = (STATE.spec.beats[0] ? STATE.spec.beats[0].hook : "").replace(/\n/g, " / ");
-  $("flowBtn").disabled = true; $("aiStatus").textContent = "흐름 검토 중… (내용은 그대로)";
+  $("flowBtn").disabled = true; $("aiStatus").textContent = "흐름 검토 중…";
   try {
-    const d = await api("/api/flow-review", { method: "POST", body: JSON.stringify({ title: STATE.spec.title, hook, lines }) });
-    const out = $("verifyOut"); out.textContent = "[흐름 검토]\n" + (d.review || "(결과 없음)"); out.style.display = "block";
-    $("aiStatus").textContent = "✓ 흐름 검토 완료 — 내용은 그대로, 아래 평가 참고";
+    const d = await api("/api/flow-review", { method: "POST", body: JSON.stringify({ title: STATE.spec.title, hook, scenes }) });
+    const rep = []; let n = 0;
+    STATE.spec.beats.forEach(b => {
+      const v = d[b.scene_index];
+      if (v && !v.ok) { b._verify = v; n++; rep.push(`씬${b.scene_index}: ${v.reason}`); }
+    });
+    renderBeats();
+    const out = $("verifyOut");
+    out.style.display = "block";
+    if (n) {
+      out.textContent = `[흐름 검토] 연결 어색 ${n}곳 — 각 자막 밑 대안을 클릭하면 그 문장으로 교체됩니다\n` + rep.join("\n");
+      $("aiStatus").textContent = `✅ 흐름 검토 — ${n}곳 대안 제시(자막 밑 클릭=교체)`;
+    } else {
+      out.textContent = "[흐름 검토] ✓ 전체 흐름 양호";
+      $("aiStatus").textContent = "✅ 흐름 양호";
+    }
   } catch (e) { $("aiStatus").textContent = "흐름 검토 실패: " + e.message; }
   finally { $("flowBtn").disabled = false; }
 }
