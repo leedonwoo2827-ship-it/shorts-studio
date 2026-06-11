@@ -1,6 +1,6 @@
 // 쇼츠공방 — 세로 쇼츠 메이커 SPA
 const $ = (id) => document.getElementById(id);
-const STATE = { bundleDir: "", spec: { beats: [], audio: null, cta: "", title: "" }, allScenes: [] };
+const STATE = { bundleDir: "", spec: { beats: [], audio: null, cta: "", title: "" }, allScenes: [], llmReady: false };
 let renderTimer = null;
 let ttsTimer = null;
 
@@ -22,6 +22,7 @@ async function boot() {
 
 // ---------- LLM 계정 ----------
 function applyLlmStatus(s) {
+  STATE.llmReady = !!(s && s.ready);
   const chip = $("llmChip");
   if (s && s.ready) {
     chip.textContent = `LLM: ${s.label || s.provider} ✓`; chip.className = "chip ok";
@@ -85,8 +86,12 @@ async function compose() {
     renderBeats();
     $("workspace").style.display = "flex";
     $("bundleHint").textContent = `자동 구성 완료 — 씬 ${spec.beats.length}개`;
-    await aiFill({});        // AI로 후크·해시태그·자막 자동 채움(로그인 시)
-    await verifyContent();   // 이어서 자동 검토 → 각 자막 밑에 근거 표시
+    if (STATE.llmReady) {
+      await aiFill({});        // AI로 후크·해시태그·자막 자동 채움
+      await verifyContent();   // 이어서 자동 검토 → 각 자막 밑에 근거 표시
+    } else {
+      $("aiStatus").textContent = "LLM 미연결 — 문구는 직접 입력하세요 (렌더는 그대로 가능)";
+    }
   } catch (e) { $("bundleHint").textContent = "실패: " + e.message; }
   finally { $("composeBtn").disabled = false; }
 }
