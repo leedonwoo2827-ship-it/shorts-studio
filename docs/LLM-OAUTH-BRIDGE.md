@@ -42,6 +42,10 @@ oauth-llm-bridge/
 ```
 새 프로젝트: `llm_kit.py` 복사 → 환경변수 `LLM_BRIDGE_DIR` 지정 → `import llm_kit; llm_kit.complete(...)`.
 
-## A 방식(쇼츠공방만)에서는
-백엔드가 없으므로 `available()`이 False → AI·TTS·메타 버튼은 안내만 띄우고 동작하지 않습니다.
-대신 번들의 기존 음성 + 수동 자막으로 렌더는 정상 동작합니다.
+## 백엔드가 없을 때 (영상공방 미설치) — 자동 폴백
+`shortsmaker/llm.py` 가 백엔드 유무를 보고 자동 분기합니다:
+- **LLM** → 내장 `cli_llm.py` 가 **codex/agy CLI 를 직접 호출**(영상공방 코드 복사 X). CLI 설치+로그인만 하면 AI 작동.
+- **TTS** → `tts.py` 가 **edge-tts**(무료·온라인) 로 폴백. 없으면 번들 기존 음성.
+
+즉 영상공방 없이도 **codex/agy CLI(+로그인) + edge-tts** 만으로 풀 기능이 됩니다.
+영상공방이 있으면(= `services/llm_backend.py` + `venv` 탐지) 그 OAuth 세션·SuperTonic 을 우선 사용합니다.

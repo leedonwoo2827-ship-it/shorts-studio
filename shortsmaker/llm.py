@@ -1,30 +1,103 @@
-"""쇼츠 앱 LLM 헬퍼 — 재사용 키트(llm_kit) 위에 쇼츠 전용 프롬프트만 얹은 얇은 래퍼.
+"""쇼츠 앱 LLM 헬퍼 — 백엔드 자동 분기 + 쇼츠 전용 프롬프트.
 
-브리지/계정관리(상태·공급자전환·로그인·로그아웃)는 전부 `llm_kit` 가 담당한다.
-키트는 OAuth 백엔드(영상공방 services.llm_backend, codex/agy)를 그 venv 로 호출한다.
-이 앱에선 SHORTS_VODSTUDIO_DIR 로 백엔드 경로를 지정 → 키트의 LLM_BRIDGE_DIR 로 매핑.
+- 영상공방 백엔드(LLM_BRIDGE_DIR/venv + services)가 있으면 → 그쪽 OAuth LLM/TTS 를 브리지(llm_kit).
+- 없으면 → **내장 codex/agy 직접 호출**(cli_llm)로 폴백. (그 그룹은 codex/agy CLI 설치+로그인만 하면 됨)
+둘 다 없으면 available()=False → AI 기능은 조용히 비활성, 렌더는 정상.
 """
 from __future__ import annotations
 
 import os
 import re
+import subprocess
+import sys
 
-# 이 앱의 설정 이름(SHORTS_VODSTUDIO_DIR)을 키트 표준(LLM_BRIDGE_DIR)으로 매핑
+# SHORTS_VODSTUDIO_DIR → 키트 표준 LLM_BRIDGE_DIR 매핑
 _vod = os.environ.get("SHORTS_VODSTUDIO_DIR")
 if _vod and not os.environ.get("LLM_BRIDGE_DIR"):
     os.environ["LLM_BRIDGE_DIR"] = _vod
 
-from .llm_kit import (  # noqa: E402  (재노출)
-    LLMUnavailable, available, complete, launch_login, login_cmd, logout,
-    set_provider, status,
-)
+from . import cli_llm  # noqa: E402  내장 폴백
+from . import llm_kit  # noqa: E402  영상공방 브리지
 
-__all__ = ["LLMUnavailable", "available", "complete", "launch_login", "login_cmd",
-           "logout", "set_provider", "status", "suggest_hook", "suggest_caption",
-           "shorts_meta"]
+LLMUnavailable = llm_kit.LLMUnavailable
+__all__ = ["LLMUnavailable", "available", "status", "complete", "set_provider", "logout",
+           "login_cmd", "launch_login", "suggest_hook", "suggest_caption",
+           "gen_fill", "verify_captions", "flow_review", "shorts_meta"]
 
 
-# ----- 쇼츠 전용 프롬프트 -----
+def _use_bridge() -> bool:
+    return llm_kit.backend_available()
+
+
+# ── 상태/계정 (자동 분기) ─────────────────────────────────────────────────────
+def status(use_cache: bool = True) -> dict:
+    if _use_bridge():
+        s = llm_kit.status(use_cache)
+        if s.get("ready") or s.get("provider"):
+            return s
+    return cli_llm.status()
+
+
+def available() -> bool:
+    return bool(status(False).get("ready"))
+
+
+def set_provider(name: str) -> dict:
+    if _use_bridge():
+        return llm_kit.set_provider(name)
+    os.environ["LLM_PROVIDER"] = name      # 내장: 런타임 공급자 변경(.env 로 기본값 지정)
+    return {"ok": True, "status": cli_llm.status()}
+
+
+def logout(provider: str | None = None) -> dict:
+    if _use_bridge():
+        return llm_kit.logout(provider)
+    # 내장: codex 는 logout, agy 는 미지원
+    prov = provider or cli_llm.status().get("provider")
+    if prov == "codex":
+        try:
+            subprocess.run([(cli_llm._codex_path() or "codex"), "logout"],
+                           capture_output=True, timeout=20)
+        except Exception:
+            pass
+    return {"ok": True, "provider": prov}
+
+
+def login_cmd(provider: str | None = None) -> dict:
+    if _use_bridge():
+        return llm_kit.login_cmd(provider)
+    cmd = cli_llm.login_cmd(provider)
+    return {"provider": provider or cli_llm.status().get("provider"), "cmd": cmd}
+
+
+def launch_login(provider: str | None = None) -> dict:
+    if _use_bridge():
+        return llm_kit.launch_login(provider)
+    cmd = cli_llm.login_cmd(provider)
+    try:
+        if sys.platform == "win32":
+            subprocess.Popen(["cmd", "/c", "start", "", "cmd", "/k", *cmd])
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", "-a", "Terminal", cmd[0]])
+        else:
+            subprocess.Popen(cmd)
+    except Exception as e:  # noqa: BLE001
+        raise LLMUnavailable(f"로그인 터미널 실행 실패: {e}")
+    return {"ok": True, "provider": provider, "cmd": cmd}
+
+
+def complete(prompt: str, *, max_tokens: int = 800) -> str:
+    if _use_bridge():
+        return llm_kit.complete(prompt, max_tokens=max_tokens)
+    try:
+        return cli_llm.complete(prompt, max_tokens=max_tokens)
+    except LLMUnavailable:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise LLMUnavailable(f"LLM 호출 실패: {e}")
+
+
+# ── 쇼츠 전용 프롬프트 ────────────────────────────────────────────────────────
 
 def suggest_hook(narration: str, current: str = "") -> str:
     return complete(
@@ -70,10 +143,6 @@ def _parse_fill(text: str) -> dict:
 
 def gen_fill(title: str, scenes: list, review_of: dict | None = None,
              only: str | None = None) -> dict:
-    """쇼츠 후크·해시태그·씬별 음성자막 생성. only='hook'|'captions'|None(전체).
-
-    only='hook' → 후크/해시태그만, only='captions' → 씬 자막만 생성(포커스·빠름).
-    """
     want_hook = only in (None, "hook")
     want_caps = only in (None, "captions")
     briefs = "\n".join(f"씬{s['scene_index']}: {(s.get('narration') or s.get('subtitle') or '')[:160]}"
@@ -90,7 +159,6 @@ def gen_fill(title: str, scenes: list, review_of: dict | None = None,
         if cur:
             review = ("\n\n## 아래는 1차 초안입니다. 더 강하고 입에 붙게, 중복 제거하고 최종 다듬으세요.\n"
                       + "\n".join(cur))
-
     fmt = ""
     if want_hook:
         fmt += ("후크1: (검정으로 나갈 1줄, 호기심·도발 질문형, 16자 이내)\n"
@@ -105,7 +173,6 @@ def gen_fill(title: str, scenes: list, review_of: dict | None = None,
             else:
                 fmt += (f"씬{s['scene_index']}: (이 씬을 말하듯 들려주는 구어체 나레이션 한 문장. "
                         "제목·명사 나열 금지, 완결된 문장, 22~40자)\n")
-
     prompt = (
         "당신은 유튜브 쇼츠 '내레이션 대본' 작가입니다. 아래 씬들로 세로 쇼츠용 문구를 만드세요.\n"
         "후크는 끝까지 보게 만드는 강한 한 방(짧게). 씬 자막은 **음성으로 읽히는 구어체 나레이션**이라 "
@@ -122,11 +189,6 @@ def gen_fill(title: str, scenes: list, review_of: dict | None = None,
 
 
 def verify_captions(scenes: list) -> dict:
-    """각 씬의 [원본 내레이션] 대비 [현재 자막]의 사실 정확성 점검 + 대안 제시.
-
-    scenes: [{scene_index, narration, caption}].
-    반환: {idx: {ok: bool, reason: 짧은평가, alts: [사실에 맞는 대안문장,...]}}.
-    """
     items = "\n\n".join(
         f"[씬{s['scene_index']}]\n원본: {(s.get('narration') or '')[:220]}\n자막: {s.get('caption') or ''}"
         for s in scenes)
@@ -147,16 +209,15 @@ def verify_captions(scenes: list) -> dict:
             continue
         idx = int(m.group(1))
         parts = [p.strip() for p in m.group(2).split("|")]
-        status = (parts[0] if parts else "").upper()
+        status_ = (parts[0] if parts else "").upper()
         reason = parts[1] if len(parts) > 1 else ""
         alts_str = parts[2] if len(parts) > 2 else ""
         alts = [a.strip() for a in re.split(r";;|；；", alts_str) if a.strip()]
-        out[idx] = {"ok": status.startswith("OK"), "reason": reason, "alts": alts}
+        out[idx] = {"ok": status_.startswith("OK"), "reason": reason, "alts": alts}
     return out
 
 
 def flow_review(title: str, hook: str, lines: list) -> str:
-    """전체 흐름 검토(읽기 전용). 내용을 새로 쓰지 않고 흐름·중복·연결·CTA를 짧게 평가."""
     body = "\n".join(f"{i + 1}. {l}" for i, l in enumerate(lines))
     return complete(
         "아래는 세로 쇼츠의 상단 후크와 씬별 음성 자막(순서대로)입니다. 전체 '흐름'을 검토하세요.\n"

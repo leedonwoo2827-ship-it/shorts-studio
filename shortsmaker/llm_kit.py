@@ -61,6 +61,16 @@ def _bridge_python() -> Optional[str]:
     return None
 
 
+def backend_available() -> bool:
+    """외부 백엔드(영상공방)가 연결 가능한지 — services/llm_backend.py + venv 둘 다 있어야 True.
+    (LLM_BRIDGE_DIR 미설정/빈 값이면 False → 내장 폴백으로)."""
+    raw = (os.environ.get("LLM_BRIDGE_DIR") or DEFAULT_BRIDGE_DIR or "").strip()
+    if not raw:
+        return False
+    d = Path(raw)
+    return (d / "services" / "llm_backend.py").is_file() and _bridge_python() is not None
+
+
 def _child_env() -> dict:
     # 공급자는 백엔드의 data/llm_provider.json(UI 토글)이 결정 → LLM_PROVIDER 를 덮지 않는다.
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}

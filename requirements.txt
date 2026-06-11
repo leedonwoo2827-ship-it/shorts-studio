@@ -1,5 +1,11 @@
 fastapi>=0.110
 uvicorn[standard]>=0.27
 python-dotenv>=1.0
-# ffmpeg/ffprobe 는 PATH 에 별도 설치 (winget install Gyan.FFmpeg)
-# LLM은 영상공방의 OAuth 백엔드(codex/agy)를 재사용 — 별도 패키지 불필요
+
+# --- 선택 패키지 (setup.bat이 best-effort로 설치, 실패해도 무시) ---
+# edge-tts   : 영상공방 없이 새 목소리 TTS(무료·온라인). 없으면 번들 기존 음성 사용.
+# pywinpty   : agy(Antigravity) 내장 호출용(Windows). codex만 쓰면 불필요.
+#
+# 그 외 PATH 설치(필수/선택):
+#  - ffmpeg/ffprobe (필수)  : 영상 합성
+#  - codex 또는 agy CLI     : AI 기능(직접 호출). 영상공방 백엔드가 있으면 그걸 자동 사용.
