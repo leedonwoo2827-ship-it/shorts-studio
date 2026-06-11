@@ -35,8 +35,26 @@ function applyLlmStatus(s) {
     : `미로그인${s && s.label ? " (" + s.label + ")" : ""}${s && s.error ? " — " + s.error : ""}`;
 }
 async function llmRefresh() {
-  try { applyLlmStatus(await api("/api/llm/status")); }
+  try { applyLlmStatus(await api("/api/llm/status")); await loadModels(); }
   catch (e) { $("llmChip").textContent = "서버 확인 실패"; }
+}
+async function loadModels() {
+  const sel = $("llmModel"); if (!sel) return;
+  try {
+    const d = await api("/api/llm/models");
+    const cur = d.current || "";
+    sel.innerHTML = '<option value="">기본값 (자동 선택)</option>' +
+      (d.models || []).map(m => `<option value="${m}"${m === cur ? " selected" : ""}>${m}</option>`).join("");
+    if (cur && !(d.models || []).includes(cur)) sel.value = "";
+    if ($("llmModelInfo")) $("llmModelInfo").textContent = "현재 적용: " + (cur || "기본 모델");
+  } catch (e) { /* 모델 목록 미지원 공급자/오류는 무시 */ }
+}
+async function applyModel() {
+  const sel = $("llmModel"); if (!sel) return;
+  try {
+    const r = await api("/api/llm/model", { method: "POST", body: JSON.stringify({ model: sel.value }) });
+    if ($("llmModelInfo")) $("llmModelInfo").textContent = "현재 적용: " + ((r && r.model) || "기본 모델");
+  } catch (e) { alert("모델 적용 실패: " + e.message); }
 }
 async function llmSetProvider(p) {
   try { const r = await api("/api/llm/provider", { method: "POST", body: JSON.stringify({ provider: p }) }); applyLlmStatus(r.status ? statusFrom(r.status) : null); await llmRefresh(); }
@@ -409,4 +427,5 @@ $("llmProvider").onchange = (e) => llmSetProvider(e.target.value);
 $("llmLoginBtn").onclick = llmLogin;
 $("llmLogoutBtn").onclick = llmLogout;
 $("llmRefreshBtn").onclick = llmRefresh;
+$("llmModelApplyBtn").onclick = applyModel;
 boot();

@@ -160,6 +160,28 @@ def login_cmd(provider: Optional[str] = None) -> dict:
         "result = {'provider': p, 'cmd': lb.login_cmd(p)}")
 
 
+# ── 모델 선택 ─────────────────────────────────────────────────────────────────
+def list_models() -> list:
+    try:
+        r = _eval("result = list(lb.list_models())", timeout=40)
+        return r if isinstance(r, list) else []
+    except Exception:
+        return []
+
+
+def get_model() -> str:
+    try:
+        return _eval("result = (lb.get_model() or '')") or ""
+    except Exception:
+        return ""
+
+
+def set_model(name: str) -> dict:
+    res = _eval(f"lb.set_model({name!r})\nresult = {{'ok': True, 'model': (lb.get_model() or '')}}")
+    _invalidate()
+    return res
+
+
 def launch_login(provider: Optional[str] = None) -> dict:
     """로그인 명령(codex login / agy)을 새 터미널에서 실행 → 브라우저 OAuth. 계정 전환에 사용."""
     info = login_cmd(provider)

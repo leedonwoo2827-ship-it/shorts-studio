@@ -172,6 +172,10 @@ class MaybeProviderReq(BaseModel):
     provider: Optional[str] = None
 
 
+class ModelReq(BaseModel):
+    model: str = ""
+
+
 @app.get("/api/llm/status")
 async def llm_status():
     return await asyncio.to_thread(llm.status, False)
@@ -199,6 +203,21 @@ async def llm_logout(req: MaybeProviderReq):
         return await asyncio.to_thread(llm.logout, req.provider)
     except llm.LLMUnavailable as e:
         raise HTTPException(500, str(e))
+
+
+@app.get("/api/llm/models")
+async def llm_models():
+    models = await asyncio.to_thread(llm.list_models)
+    current = await asyncio.to_thread(llm.get_model)
+    return {"models": models, "current": current}
+
+
+@app.post("/api/llm/model")
+async def llm_set_model(req: ModelReq):
+    try:
+        return await asyncio.to_thread(llm.set_model, req.model)
+    except llm.LLMUnavailable as e:
+        raise HTTPException(400, str(e))
 
 
 @app.get("/api/bundles")

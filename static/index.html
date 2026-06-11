@@ -25,12 +25,20 @@
       <div style="flex:2"><label>상태</label>
         <div id="llmInfo" class="hint">확인 중…</div></div>
     </div>
+    <div class="row">
+      <div style="flex:2"><label>사용 모델</label>
+        <select id="llmModel"><option value="">기본값 (자동 선택)</option></select></div>
+      <div><label>&nbsp;</label>
+        <button id="llmModelApplyBtn" class="ghost">적용</button></div>
+    </div>
+    <div id="llmModelInfo" class="hint">현재 적용: 기본 모델</div>
     <div class="toolbar">
       <button id="llmLoginBtn" class="ghost">🔑 로그인 (터미널)</button>
       <button id="llmLogoutBtn" class="ghost">🚪 로그아웃</button>
       <button id="llmRefreshBtn" class="ghost">↻ 새로고침</button>
     </div>
-    <p class="hint">로그인하면 새 터미널 창이 열립니다(브라우저 OAuth). 다른 계정으로 바꾸려면 <b>로그아웃 → 로그인</b>.</p>
+    <p class="hint">로그인하면 새 터미널 창이 열립니다(브라우저 OAuth). 다른 계정으로 바꾸려면 <b>로그아웃 → 로그인</b>.<br>
+      상위 모델은 상위 구독에서만 동작할 수 있습니다(미동작 시 기본값으로 자동 폴백).</p>
   </section>
 
   <!-- 1) 번들 -->

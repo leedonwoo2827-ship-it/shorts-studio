@@ -175,3 +175,54 @@ def _agy_complete(prompt: str) -> str:
 def complete(prompt: str, *, max_tokens: int = 800) -> str:
     prov = status().get("provider")
     return _agy_complete(prompt) if prov == "agy" else _codex_complete(prompt)
+
+
+# ── 모델 선택 (내장) ──────────────────────────────────────────────────────────
+_MODEL_ENV = {"codex": "CODEX_MODEL", "agy": "AGY_MODEL"}
+
+
+def get_model() -> str:
+    prov = status().get("provider")
+    return (os.environ.get(_MODEL_ENV.get(prov, "")) or "").strip()
+
+
+def set_model(name: str) -> dict:
+    prov = status().get("provider")
+    os.environ[_MODEL_ENV.get(prov, "CODEX_MODEL")] = (name or "").strip()
+    return {"ok": True, "model": (name or "").strip()}
+
+
+def list_models() -> list:
+    prov = status().get("provider")
+    path = _codex_path() if prov == "codex" else _agy_path()
+    if not path:
+        return []
+    args = [path, "debug", "models"] if prov == "codex" else [path, "models"]
+    try:
+        r = subprocess.run(args, capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", timeout=30)
+    except Exception:
+        return []
+    out = _clean(r.stdout or "")
+    models: list = []
+    if prov == "codex" and '"models"' in out and "{" in out:
+        try:
+            import json
+            blob = out[out.index("{"):out.rindex("}") + 1]
+            for m in (json.loads(blob).get("models") or []):
+                if isinstance(m, dict) and str(m.get("visibility", "")).lower() != "hide":
+                    s = (m.get("slug") or m.get("id") or m.get("name") or "").strip()
+                    if s and s not in models:
+                        models.append(s)
+            if models:
+                return models
+        except Exception:
+            pass
+    pat = (re.compile(r"^(gpt|o\d|chatgpt|codex)[A-Za-z0-9.\-_]*$", re.I) if prov == "codex"
+           else re.compile(r"^(Gemini|Claude|GPT|gemini|claude|gpt)[A-Za-z0-9 .\-()/]*$"))
+    for line in out.splitlines():
+        s = re.sub(r"^[>\-\*●•‣→\s\d.\)]+", "", line.strip()).strip()
+        tok = s if prov == "agy" else (s.split()[0] if s.split() else "")
+        if tok and pat.match(tok) and tok not in models:
+            models.append(tok)
+    return models
