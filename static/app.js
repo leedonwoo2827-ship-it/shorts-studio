@@ -253,24 +253,6 @@ async function verifyOne(i, btn) {
     else { btn.disabled = false; btn.textContent = "🔎 검토"; }
   } catch (e) { $("aiStatus").textContent = "검토 실패: " + e.message; btn.disabled = false; btn.textContent = "🔎 검토"; }
 }
-// 전체 흐름 정리 — 모든 자막을 원본 근거로 1회 재작성(독립 완결 문장·흐름 정리) → 자동 사실검증
-async function tidyAll() {
-  if (!STATE.spec.beats.length) return;
-  const scenes = STATE.spec.beats.map(b => {
-    const s = STATE.allScenes.find(x => x.scene_index === b.scene_index) || {};
-    return { scene_index: b.scene_index, narration: s.narration || "", caption: (b.caption || "").replace(/\n/g, " ") };
-  });
-  $("flowBtn").disabled = true; $("aiStatus").textContent = "전체 흐름 정리 중… (원본 근거로 재작성)";
-  try {
-    const d = await api("/api/tidy", { method: "POST", body: JSON.stringify({ title: STATE.spec.title, scenes }) });
-    let n = 0;
-    STATE.spec.beats.forEach(b => { if (d[b.scene_index]) { b.caption = d[b.scene_index]; delete b._verify; n++; } });
-    renderBeats();
-    $("aiStatus").textContent = `✨ ${n}개 자막 정리됨 — 이어서 사실검증 중…`;
-    await verifyContent();   // 잔여 사실 오류 자동 점검
-  } catch (e) { $("aiStatus").textContent = "전체 흐름 정리 실패: " + e.message; }
-  finally { $("flowBtn").disabled = false; }
-}
 async function verifyContent() {
   if (!STATE.spec.beats.length) return;
   const scenes = STATE.spec.beats.map(b => { const s = STATE.allScenes.find(x => x.scene_index === b.scene_index) || {}; return { scene_index: b.scene_index, narration: s.narration || "", caption: b.caption }; });
@@ -412,7 +394,6 @@ $("refreshBtn").onclick = refreshBundles;
 $("composeBtn").onclick = compose;
 $("aiFillHookBtn").onclick = () => aiFill({ only: "hook" });
 $("aiFillCapBtn").onclick = () => aiFill({ only: "captions" });
-$("flowBtn").onclick = tidyAll;
 $("verifyBtn").onclick = verifyContent;
 $("hookStore").onchange = (e) => applyHookToAll(e.target.value);
 $("hookSaveBtn").onclick = saveCurrentHook;
