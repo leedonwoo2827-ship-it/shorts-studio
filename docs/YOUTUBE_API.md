@@ -17,6 +17,19 @@ YouTube API 연동 절차. 두 경로가 있고, **목적이 조회수면 경로
 
 ---
 
+## 현재 설정 (이 프로젝트)
+| 항목 | 값 |
+|---|---|
+| Google 계정 | `ubionbooktv@gmail.com` |
+| 채널 | https://www.youtube.com/@ubionbooktv/shorts |
+| GCP 프로젝트 이름 | `short-studio` |
+| GCP 프로젝트 ID | `short-studio-500623` |
+| 사용 설정 API | **YouTube Data API v3** (경로 A) |
+| API 키 | 발급 후 `.env`의 `YOUTUBE_API_KEY=` 에만 보관(레포에 커밋 안 함) |
+| 결제 | 불필요(무료 쿼터, 카드 미등록) |
+
+> 진행 체크: ① 프로젝트 생성 ✅ ② YouTube Data API v3 사용 설정 ✅ ③ API 키 발급 → `.env` (다음 단계)
+
 ## 경로 A — API 키 (권장)
 
 ### 발급 절차
