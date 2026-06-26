@@ -142,6 +142,8 @@ chNN_bundle/
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — 파이프라인·모듈·렌더 방식
 - [docs/LLM-OAUTH-BRIDGE.md](docs/LLM-OAUTH-BRIDGE.md) — OAuth LLM/TTS 브리지 원리, 재사용 키트
 - [docs/BUNDLE-FORMAT.md](docs/BUNDLE-FORMAT.md) — 번들 폴더·스크립트 JSON 형식
+- [docs/SERIES.md](docs/SERIES.md) — 시리즈별 자산(input/output) 물리 위치·전환
+- [docs/YOUTUBE_API.md](docs/YOUTUBE_API.md) — 조회수 연동(경로 A: API 키 / B: OAuth)과 MBTI·장 인사이트
 
 ## 의존
 ffmpeg, FastAPI, uvicorn. LLM·TTS는 외부 백엔드(영상공방의 codex/agy·VoiceWright)에 의존(설치 시 활성화).
