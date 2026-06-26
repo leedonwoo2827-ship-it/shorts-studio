@@ -28,7 +28,7 @@ YouTube API 연동 절차. 두 경로가 있고, **목적이 조회수면 경로
 | API 키 | 발급 후 `.env`의 `YOUTUBE_API_KEY=` 에만 보관(레포에 커밋 안 함) |
 | 결제 | 불필요(무료 쿼터, 카드 미등록) |
 
-> 진행 체크: ① 프로젝트 생성 ✅ ② YouTube Data API v3 사용 설정 ✅ ③ API 키 발급 → `.env` (다음 단계)
+> 진행 체크: ① 프로젝트 생성 ✅ ② YouTube Data API v3 사용 설정 ✅ ③ API 키 발급 ✅ → `.env`에 입력
 
 ## 경로 A — API 키 (권장)
 
@@ -78,5 +78,21 @@ GET .../playlistItems?part=contentDetails&playlistId=<uploads>&maxResults=50&key
 2. 마스터 리스트의 **생산** 행에 **업로드한 쇼츠 URL/ID 입력** 칸 — 영상↔(장,MBTI) 셀 연결(업로드는 수동).
 3. **[조회수 갱신]** → 모든 `youtube_video_id`를 50개씩 묶어 `videos.list` → `view_stat`에 일자별 적재.
 4. **인사이트 집계**: MBTI별·장별 평균/중앙 조회수 → 표·차트. (경로 B 연동 시 지속시간·CTR 컬럼 추가)
+
+---
+
+## 나중에 키를 다시 보는 곳 / 관리
+발급받은 키 값을 잊었거나 다시 확인·교체할 때:
+
+1. https://console.cloud.google.com 접속 (계정 `ubionbooktv@gmail.com`)
+2. 상단 프로젝트가 **`short-studio`** 인지 확인 (다르면 클릭해서 전환)
+3. 왼쪽 메뉴 **API 및 서비스 → 사용자 인증 정보(Credentials)**
+4. **API 키** 목록에서 해당 키 클릭
+   - **"키 표시(Show key)"** → 전체 키 값 확인·복사
+   - 같은 화면에서 **키 제한 변경**(API 제한 = YouTube Data API v3) / **키 재생성(회전)** / **삭제** 가능
+5. 키를 바꿨으면 `.env`의 `YOUTUBE_API_KEY=` 값을 새 키로 교체 후 서버(run.bat) 재시작
+
+**보관 위치**: 이 앱에서는 `.env`의 `YOUTUBE_API_KEY=` 한 곳에만 둔다. `.env`는 `.gitignore`라 깃에 안 올라감.
+키가 유출되면 위 4단계에서 **재생성**하면 옛 키는 즉시 무효화된다.
 
 관련: [SERIES.md](SERIES.md) · [ARCHITECTURE.md](ARCHITECTURE.md)
