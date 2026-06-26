@@ -70,14 +70,20 @@ GET .../playlistItems?part=contentDetails&playlistId=<uploads>&maxResults=50&key
 
 ---
 
-## 앱 연동 (구현 시)
-스키마에 자리는 이미 있음: `slot.youtube_video_id`, `view_stat(slot_id, fetched_at, view_count)`
-([shortsmaker/campaign.py](../shortsmaker/campaign.py)).
+## 앱 연동 (구현됨 ✅)
+구현 위치: [shortsmaker/youtube.py](../shortsmaker/youtube.py)(API 키 클라이언트),
+[shortsmaker/campaign.py](../shortsmaker/campaign.py)(`set_video`/`refresh_views`/`insights`),
+`/api/campaign/{video,views/refresh,insights}`, 캠페인 탭 UI.
 
-1. `.env`에 `YOUTUBE_API_KEY` 설정.
-2. 마스터 리스트의 **생산** 행에 **업로드한 쇼츠 URL/ID 입력** 칸 — 영상↔(장,MBTI) 셀 연결(업로드는 수동).
-3. **[조회수 갱신]** → 모든 `youtube_video_id`를 50개씩 묶어 `videos.list` → `view_stat`에 일자별 적재.
-4. **인사이트 집계**: MBTI별·장별 평균/중앙 조회수 → 표·차트. (경로 B 연동 시 지속시간·CTR 컬럼 추가)
+**사용 순서**
+1. `.env`에 `YOUTUBE_API_KEY=` 입력 → 서버(run.bat) 재시작.
+2. [캠페인] 탭 마스터 리스트의 각 행 **YouTube URL/ID 칸**에 발행한 쇼츠 주소를 붙여넣기
+   (예: `https://www.youtube.com/shorts/XXXXXXXXXXX` 또는 11자 ID) → 자동으로 (장,MBTI) 셀에 연결.
+3. **[📊 조회수 갱신]** → 연결된 모든 영상의 조회수를 한 번에 가져와 `view_stat`에 일자별 적재
+   (행 옆에 `▶ 조회수` 표시). 매일/주기적으로 누르면 추세가 쌓임.
+4. **[💡 인사이트]** → 각 셀 '최신 조회수' 기준 **MBTI별·장별 평균 조회수** 표 → 어떤 유형/장이 잘 먹히는지.
+
+> 경로 B(OAuth) 연동 시 `view_stat`에 지속시간·CTR 컬럼을 더해 같은 표를 확장하면 된다(미구현).
 
 ---
 

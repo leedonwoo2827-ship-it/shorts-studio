@@ -299,6 +299,30 @@ async def campaign_produced(req: ProducedReq):
     return await asyncio.to_thread(campaign.mark_produced, req.chapter, req.mbti, req.video_path)
 
 
+class VideoReq(BaseModel):
+    chapter: int
+    mbti: str
+    video: str = ""
+
+
+@app.post("/api/campaign/video")
+async def campaign_video(req: VideoReq):
+    return await asyncio.to_thread(campaign.set_video, req.chapter, req.mbti, req.video)
+
+
+@app.post("/api/campaign/views/refresh")
+async def campaign_views_refresh():
+    try:
+        return await asyncio.to_thread(campaign.refresh_views)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/campaign/insights")
+async def campaign_insights():
+    return await asyncio.to_thread(campaign.insights)
+
+
 @app.get("/api/bundles")
 async def list_bundles(root: str = ""):
     roots = [Path(root)] if root.strip() else _bundle_roots()

@@ -448,6 +448,7 @@ function renderCampList() {
   $("campList").innerHTML = rows.map(r => {
     const today = r.day === nd ? " today" : "";
     const prod = r.status === "produced";
+    const views = (r.views != null) ? `<b class="yt-views">▶ ${r.views.toLocaleString()}</b>` : "";
     return `<div class="camp-row${today}${prod ? " done" : ""}" data-ch="${r.chapter}" data-mbti="${r.mbti}">
       <span class="c-day">${r.day}</span>
       <span class="c-ch">${r.chapter}장<small>${esc(r.title || "")}</small></span>
@@ -455,17 +456,52 @@ function renderCampList() {
       <span class="c-hook">
         <input class="ch-l1" value="${esc(r.line1)}" placeholder="1줄(검정)">
         <input class="ch-l2" value="${esc(r.line2)}" placeholder="2줄(주황)"></span>
+      <span class="c-yt">
+        <input class="ch-yt" value="${esc(r.video_id)}" placeholder="발행 후 URL/ID 붙여넣기">
+        ${views}</span>
       <span class="c-st">${prod ? "✅ 생산" : (today ? "⭐ 오늘" : "예정")}</span>
       <span class="c-act"><button class="ghost mini ch-build">구성</button></span>
     </div>`;
   }).join("") || '<div class="hint" style="padding:1rem">표시할 행이 없습니다. 후크 생성 또는 필터를 확인하세요.</div>';
   $("campList").querySelectorAll(".camp-row").forEach(row => {
     const ch = +row.dataset.ch, mbti = row.dataset.mbti;
-    const l1 = row.querySelector(".ch-l1"), l2 = row.querySelector(".ch-l2");
+    const l1 = row.querySelector(".ch-l1"), l2 = row.querySelector(".ch-l2"), yt = row.querySelector(".ch-yt");
     const save = () => saveHook(ch, mbti, l1.value, l2.value);
     l1.onchange = save; l2.onchange = save;
+    yt.onchange = () => saveVideo(ch, mbti, yt.value);
     row.querySelector(".ch-build").onclick = () => applyAssignment(ch, mbti, l1.value, l2.value);
   });
+}
+async function saveVideo(chapter, mbti, video) {
+  try {
+    const d = await api("/api/campaign/video", { method: "POST", body: JSON.stringify({ chapter, mbti, video }) });
+    const r = CAMP.rows.find(x => x.chapter === chapter && x.mbti === mbti);
+    if (r) r.video_id = d.video_id || "";
+    $("campStatus").textContent = `✓ ${chapter}장 ${mbti} 영상 연결 (${d.video_id || "—"})`;
+  } catch (e) { $("campStatus").textContent = "영상 연결 실패: " + e.message; }
+}
+async function refreshViews() {
+  $("campViewsBtn").disabled = true; $("campStatus").textContent = "조회수 가져오는 중…";
+  try {
+    const d = await api("/api/campaign/views/refresh", { method: "POST", body: "{}" });
+    await loadCampaign();
+    $("campStatus").textContent = `✓ 조회수 갱신: ${d.updated}개 영상 (연결 ${d.linked})`;
+  } catch (e) { $("campStatus").textContent = "조회수 갱신 실패: " + e.message; }
+  finally { $("campViewsBtn").disabled = false; }
+}
+async function loadInsights() {
+  const box = $("campInsights");
+  if (box.style.display !== "none") { box.style.display = "none"; return; }
+  box.style.display = "";
+  box.innerHTML = "집계 중…";
+  try {
+    const d = await api("/api/campaign/insights");
+    if (!d.samples) { box.innerHTML = '<div class="hint">아직 조회수 데이터가 없습니다. YT칸에 URL을 넣고 [조회수 갱신]을 누르세요.</div>'; return; }
+    const tbl = (title, arr, fmtKey) => `<div class="ins-col"><h4>${title}</h4>` +
+      arr.map((x, i) => `<div class="ins-row"><span class="ins-rank">${i + 1}</span><span class="ins-key">${fmtKey(x.key)}</span><span class="ins-avg">평균 ${x.avg.toLocaleString()}</span><span class="ins-n">n=${x.n}·합 ${x.total.toLocaleString()}</span></div>`).join("") + "</div>";
+    box.innerHTML = `<div class="ins-note">표본 ${d.samples}개의 '최신 조회수' 기준 평균. 어떤 유형/장이 잘 먹히는지.</div>
+      <div class="ins-grid">${tbl("MBTI별 평균 조회수", d.by_mbti, k => k)}${tbl("장별 평균 조회수", d.by_chapter, k => k + "장")}</div>`;
+  } catch (e) { box.innerHTML = "인사이트 실패: " + e.message; }
 }
 async function saveHook(chapter, mbti, line1, line2) {
   try {
@@ -505,6 +541,8 @@ $("tabBtnMake").onclick = () => showTab("make");
 $("tabBtnCampaign").onclick = () => showTab("campaign");
 $("campSeries").onchange = (e) => setActiveSeries(e.target.value);
 $("campGenBtn").onclick = genChapterHooks;
+$("campViewsBtn").onclick = refreshViews;
+$("campInsightBtn").onclick = loadInsights;
 $("campJumpBtn").onclick = () => { const nd = nextUnproducedDay(); if (nd) { ["campFilterStatus", "campFilterMbti", "campFilterChapter"].forEach(id => $(id).value = ""); renderCampList(); const el = $("campList").querySelector(".camp-row.today"); if (el) el.scrollIntoView({ block: "center" }); } };
 ["campFilterStatus", "campFilterMbti", "campFilterChapter"].forEach(id => { $(id).onchange = renderCampList; });
 $("refreshBtn").onclick = refreshBundles;

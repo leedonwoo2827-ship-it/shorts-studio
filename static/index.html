@@ -187,8 +187,11 @@
       <div class="row">
         <div><label>장 선택</label><select id="campChapter"></select></div>
         <div><label>&nbsp;</label><button id="campGenBtn" class="ghost">✨ 16유형 후크 생성</button></div>
-        <div style="flex:2"><label>&nbsp;</label><span id="campStatus" class="hint">행의 [구성]을 누르면 제작 탭으로 보냅니다</span></div>
+        <div><label>&nbsp;</label><button id="campViewsBtn" class="ghost">📊 조회수 갱신</button></div>
+        <div><label>&nbsp;</label><button id="campInsightBtn" class="ghost">💡 인사이트</button></div>
+        <div style="flex:2"><label>&nbsp;</label><span id="campStatus" class="hint">행의 [구성]으로 제작 · 발행 후 YT칸에 URL 붙여넣고 조회수 갱신</span></div>
       </div>
+      <div id="campInsights" class="camp-insights" style="display:none"></div>
       <div class="row" style="margin-bottom:.4rem">
         <div><label>상태</label><select id="campFilterStatus"><option value="">전체</option><option value="planned">예정</option><option value="produced">생산</option></select></div>
         <div><label>MBTI</label><select id="campFilterMbti"><option value="">전체</option></select></div>
@@ -196,7 +199,8 @@
       </div>
       <div class="camp-head">
         <span class="c-day">Day</span><span class="c-ch">장</span><span class="c-mbti">MBTI</span>
-        <span class="c-hook">후크 (1줄 검정 / 2줄 주황)</span><span class="c-st">상태</span><span class="c-act"></span>
+        <span class="c-hook">후크 (1줄 검정 / 2줄 주황)</span>
+        <span class="c-yt">YouTube URL/ID · 조회수</span><span class="c-st">상태</span><span class="c-act"></span>
       </div>
       <div id="campList" class="camp-list"></div>
     </section>

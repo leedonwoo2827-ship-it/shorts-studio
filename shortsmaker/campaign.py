@@ -17,6 +17,7 @@ from typing import List, Optional
 from . import bundle as _bundle
 from . import llm as _llm
 from . import series as _series
+from . import youtube as _youtube
 
 MBTI16 = ["ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP",
           "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"]
@@ -194,7 +195,11 @@ def master_list() -> List[dict]:
         hooks = {(r["chapter"], r["mbti"]): r for r in cx.execute(
             "SELECT chapter,mbti,line1,line2,edited FROM hook WHERE campaign_id=?", (camp["id"],))}
         slots = {(r["chapter"], r["mbti"]): r for r in cx.execute(
-            "SELECT chapter,mbti,status,video_path FROM slot WHERE campaign_id=?", (camp["id"],))}
+            "SELECT chapter,mbti,status,video_path,youtube_video_id FROM slot WHERE campaign_id=?", (camp["id"],))}
+        latest = {(r["chapter"], r["mbti"]): r["view_count"] for r in cx.execute(
+            "SELECT s.chapter,s.mbti,v.view_count FROM slot s JOIN view_stat v ON v.slot_id=s.id "
+            "WHERE s.campaign_id=? AND v.id=(SELECT id FROM view_stat v2 WHERE v2.slot_id=s.id "
+            "ORDER BY fetched_at DESC, id DESC LIMIT 1)", (camp["id"],))}
     out = []
     for row in _schedule(camp):
         key = (row["chapter"], row["mbti"])
@@ -207,6 +212,8 @@ def master_list() -> List[dict]:
             "edited": (h["edited"] if h else 0),
             "status": (sl["status"] if sl else "planned"),
             "video_path": (sl["video_path"] if sl else ""),
+            "video_id": (sl["youtube_video_id"] if sl else "") or "",
+            "views": latest.get(key),
         })
     return out
 
@@ -240,5 +247,66 @@ def progress() -> dict:
     with _conn() as cx:
         produced = cx.execute("SELECT COUNT(*) c FROM slot WHERE campaign_id=? AND status='produced'",
                               (camp["id"],)).fetchone()["c"]
+        linked = cx.execute("SELECT COUNT(*) c FROM slot WHERE campaign_id=? AND youtube_video_id IS NOT NULL "
+                            "AND youtube_video_id!=''", (camp["id"],)).fetchone()["c"]
     return {"series": camp["name"], "produced": produced, "total": total,
-            "chapters": len(camp["chapters"])}
+            "chapters": len(camp["chapters"]), "linked": linked,
+            "youtube": _youtube.available()}
+
+
+# ── 조회수 연동 (Phase 3) ─────────────────────────────────────────────────────
+def set_video(chapter: int, mbti: str, video: str) -> dict:
+    """발행한 쇼츠의 URL/ID 를 (장,MBTI) 셀에 연결. slot 이 없으면 생성."""
+    camp = ensure_campaign()
+    vid = _youtube.extract_id(video) or (video or "").strip()
+    with _conn() as cx:
+        cx.execute(
+            "INSERT INTO slot(campaign_id,chapter,mbti,youtube_video_id) VALUES(?,?,?,?) "
+            "ON CONFLICT(campaign_id,chapter,mbti) DO UPDATE SET youtube_video_id=excluded.youtube_video_id",
+            (camp["id"], chapter, mbti.upper(), vid))
+    return {"ok": True, "video_id": vid}
+
+
+def refresh_views() -> dict:
+    """연결된 모든 영상의 조회수를 가져와 view_stat 에 일자별 적재."""
+    if not _youtube.available():
+        raise RuntimeError("YOUTUBE_API_KEY 미설정 (.env 확인)")
+    camp = ensure_campaign()
+    with _conn() as cx:
+        rows = cx.execute(
+            "SELECT id,youtube_video_id FROM slot WHERE campaign_id=? AND youtube_video_id IS NOT NULL "
+            "AND youtube_video_id!=''", (camp["id"],)).fetchall()
+    idmap = {r["youtube_video_id"]: r["id"] for r in rows}
+    if not idmap:
+        return {"ok": True, "updated": 0, "linked": 0}
+    views = _youtube.fetch_views(list(idmap.keys()))
+    now = _now()
+    with _conn() as cx:
+        for vid, vc in views.items():
+            cx.execute("INSERT INTO view_stat(slot_id,fetched_at,view_count) VALUES(?,?,?)",
+                       (idmap[vid], now, vc))
+    return {"ok": True, "updated": len(views), "linked": len(idmap), "at": now}
+
+
+def insights() -> dict:
+    """각 셀의 '최신 조회수'를 MBTI별·장별로 평균 집계 → 어떤 유형/장이 잘 먹히나."""
+    camp = ensure_campaign()
+    with _conn() as cx:
+        rows = cx.execute(
+            "SELECT s.chapter,s.mbti,v.view_count FROM slot s JOIN view_stat v ON v.slot_id=s.id "
+            "WHERE s.campaign_id=? AND v.id=(SELECT id FROM view_stat v2 WHERE v2.slot_id=s.id "
+            "ORDER BY fetched_at DESC, id DESC LIMIT 1)", (camp["id"],)).fetchall()
+    by_mbti: dict = {}
+    by_chapter: dict = {}
+    for r in rows:
+        by_mbti.setdefault(r["mbti"], []).append(r["view_count"])
+        by_chapter.setdefault(r["chapter"], []).append(r["view_count"])
+
+    def agg(d, label):
+        out = [{"key": k, "n": len(v), "avg": round(sum(v) / len(v), 1),
+                "total": sum(v), "max": max(v)} for k, v in d.items()]
+        return sorted(out, key=lambda x: -x["avg"])
+
+    return {"samples": len(rows),
+            "by_mbti": agg(by_mbti, "mbti"),
+            "by_chapter": agg(by_chapter, "chapter")}
