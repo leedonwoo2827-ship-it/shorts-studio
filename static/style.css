@@ -58,3 +58,27 @@ button:disabled{opacity:.5;cursor:default}
 .verify-result.ok .vr-head{color:#1f7a45}
 .verify-result .alt{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--border);color:var(--fg);border-radius:6px;padding:.4rem .55rem;margin-top:.3rem;font-size:.84rem;font-weight:400;cursor:pointer}
 .verify-result .alt:hover{border-color:var(--accent);background:#f3f6ff}
+
+/* 탭 */
+.tabs{display:flex;gap:.4rem;margin-bottom:1rem}
+.tabs .tab{background:var(--panel);border:1px solid var(--border);color:var(--muted);font-weight:600}
+.tabs .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* 캠페인 마스터 리스트 */
+.camp-head,.camp-row{display:grid;grid-template-columns:54px 1.4fr 64px 3fr 90px 70px;gap:.5rem;align-items:center}
+.camp-head{padding:.4rem .6rem;font-size:.76rem;color:var(--muted);font-weight:600;border-bottom:2px solid var(--border)}
+.camp-list{max-height:62vh;overflow:auto;border:1px solid var(--border);border-radius:10px}
+.camp-row{padding:.45rem .6rem;border-bottom:1px solid var(--border);font-size:.85rem}
+.camp-row:last-child{border-bottom:none}
+.camp-row .c-day{font-weight:700;color:var(--muted)}
+.camp-row .c-ch{display:flex;flex-direction:column;line-height:1.2}
+.camp-row .c-ch small{color:var(--muted);font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.camp-row .c-mbti{font-weight:700;color:var(--accent)}
+.camp-row .c-hook{display:flex;flex-direction:column;gap:.25rem}
+.camp-row .c-hook input{padding:.32rem .5rem;font-size:.82rem}
+.camp-row .c-st{font-size:.8rem;color:var(--muted)}
+.camp-row .c-act .mini{padding:.35rem .55rem;font-size:.78rem}
+.camp-row.today{background:#fff8e6}
+.camp-row.today .c-st{color:var(--warn);font-weight:600}
+.camp-row.done{background:#eefaf1}
+.camp-row.done .c-st{color:var(--accent2);font-weight:600}

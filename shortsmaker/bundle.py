@@ -99,6 +99,8 @@ def _find_image(images_dir: Path, chapter_id: str, scene_idx: int, hint: str) ->
 
 
 def _find_audio(audio_dir: Path, chapter_id: str, scene_idx: int) -> Optional[Path]:
+    if not audio_dir.is_dir():
+        return None
     prefix = f"{chapter_id}_{scene_idx:02d}"
     for ext in AUD_EXTS:
         cand = audio_dir / f"{prefix}_narration{ext}"
@@ -111,6 +113,8 @@ def _find_audio(audio_dir: Path, chapter_id: str, scene_idx: int) -> Optional[Pa
 
 
 def _find_subtitle(subs_dir: Path, chapter_id: str, scene_idx: int) -> Optional[Path]:
+    if not subs_dir.is_dir():
+        return None
     prefix = f"{chapter_id}_{scene_idx:02d}"
     for name in (f"{prefix}_narration.srt", f"{prefix}.srt"):
         cand = subs_dir / name
@@ -121,6 +125,8 @@ def _find_subtitle(subs_dir: Path, chapter_id: str, scene_idx: int) -> Optional[
 
 
 def _find_combined_srt(subs_dir: Path, chapter_id: str) -> Optional[Path]:
+    if not subs_dir.is_dir():
+        return None
     cand = subs_dir / f"{chapter_id}.srt"
     return cand if cand.exists() else None
 
@@ -140,7 +146,9 @@ def load_bundle(bundle_root: Path) -> Bundle:
     audio_dir = bundle_root / "audio"
     subs_dir = bundle_root / "subtitles"
 
-    for required in (script_dir, images_dir, audio_dir, subs_dir):
+    # script + images 만 필수. audio/subtitles 는 선택(쇼츠는 자막으로 TTS 를 새로 생성하므로
+    # 원본 오디오 불필요, 자막도 없으면 narration_text 로 충분).
+    for required in (script_dir, images_dir):
         if not required.is_dir():
             raise FileNotFoundError(f"Required subdir missing: {required}")
 
@@ -181,7 +189,7 @@ def load_bundle(bundle_root: Path) -> Bundle:
         if img is None:
             scene_warnings.append("image not found")
         if aud is None:
-            scene_warnings.append("audio not found")
+            scene_warnings.append("audio not found (TTS 로 생성됨)")
 
         scenes.append(Scene(
             index=idx,
@@ -201,10 +209,11 @@ def load_bundle(bundle_root: Path) -> Bundle:
             f"No per-scene SRT for some scenes and no combined {chapter_id}.srt either"
         )
 
-    hard_missing = [s.index for s in scenes if s.image_path is None or s.audio_path is None]
+    # 이미지만 필수(오디오는 TTS 로 생성). 이미지 없는 씬이 있으면 렌더 불가.
+    hard_missing = [s.index for s in scenes if s.image_path is None]
     if hard_missing:
         raise ValueError(
-            f"Scenes missing image/audio (cannot render): {hard_missing}. "
+            f"Scenes missing image (cannot render): {hard_missing}. "
             f"Run with --probe to see details."
         )
 

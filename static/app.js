@@ -367,6 +367,11 @@ async function poll(job) {
       $("player").src = url; $("dl").href = url;
       $("previewWrap").style.display = "flex";
       $("renderStatus").textContent = "✓ 완성";
+      if (CAMP.assign) {   // 캠페인에서 구성한 건이면 자동 '생산' 기록
+        const a = CAMP.assign; CAMP.assign = null;
+        api("/api/campaign/produced", { method: "POST", body: JSON.stringify({ chapter: a.chapter, mbti: a.mbti, video_path: d.path || "" }) }).catch(() => {});
+        $("renderStatus").textContent = `✓ 완성 — ${a.chapter}장·${a.mbti} 생산 기록됨`;
+      }
     } else if (d.error) { $("renderStatus").textContent = "실패"; }
   }
 }
@@ -389,7 +394,119 @@ async function copyMeta() {
   catch (e) { $("metaStatus").textContent = "복사 실패"; }
 }
 
+// ---------- 캠페인 (MBTI 후크 × 무중복 스케줄) ----------
+let CAMP = { rows: [], assign: null };
+
+function showTab(name) {
+  const make = name === "make";
+  $("tabMake").style.display = make ? "" : "none";
+  $("tabCampaign").style.display = make ? "none" : "";
+  $("tabBtnMake").classList.toggle("active", make);
+  $("tabBtnCampaign").classList.toggle("active", !make);
+  if (!make) loadCampaign();
+}
+
+async function loadSeries() {
+  try {
+    const d = await api("/api/series");
+    $("campSeries").innerHTML = (d.series || []).map(s =>
+      `<option value="${esc(s)}"${s === d.active ? " selected" : ""}>${esc(s)}</option>`).join("")
+      || '<option value="">(시리즈 없음)</option>';
+  } catch (e) {}
+}
+async function setActiveSeries(s) {
+  try {
+    await api("/api/series/active", { method: "POST", body: JSON.stringify({ series: s }) });
+    await refreshBundles();
+    await loadCampaign();
+  } catch (e) { alert("시리즈 전환 실패: " + e.message); }
+}
+async function loadCampaign() {
+  await loadSeries();
+  try {
+    const d = await api("/api/campaign/list");
+    CAMP.rows = d.rows || [];
+    const p = d.progress || {};
+    $("campProgress").textContent = `${p.produced || 0} / ${p.total || 0} 생산 · 장 ${p.chapters || 0}개`;
+    const chapters = [...new Set(CAMP.rows.map(r => r.chapter))];
+    $("campChapter").innerHTML = chapters.map(c => `<option value="${c}">${c}장</option>`).join("");
+    $("campFilterChapter").innerHTML = '<option value="">전체</option>' + chapters.map(c => `<option value="${c}">${c}장</option>`).join("");
+    const mbtis = [...new Set(CAMP.rows.map(r => r.mbti))];
+    $("campFilterMbti").innerHTML = '<option value="">전체</option>' + mbtis.map(m => `<option value="${m}">${m}</option>`).join("");
+    renderCampList();
+  } catch (e) { $("campProgress").textContent = "로드 실패: " + e.message; }
+}
+function nextUnproducedDay() {
+  const r = CAMP.rows.find(x => x.status !== "produced");
+  return r ? r.day : null;
+}
+function renderCampList() {
+  const fs = $("campFilterStatus").value, fm = $("campFilterMbti").value, fc = $("campFilterChapter").value;
+  const nd = nextUnproducedDay();
+  const rows = CAMP.rows.filter(r =>
+    (!fs || r.status === fs) && (!fm || r.mbti === fm) && (!fc || String(r.chapter) === fc));
+  $("campList").innerHTML = rows.map(r => {
+    const today = r.day === nd ? " today" : "";
+    const prod = r.status === "produced";
+    return `<div class="camp-row${today}${prod ? " done" : ""}" data-ch="${r.chapter}" data-mbti="${r.mbti}">
+      <span class="c-day">${r.day}</span>
+      <span class="c-ch">${r.chapter}장<small>${esc(r.title || "")}</small></span>
+      <span class="c-mbti">${r.mbti}</span>
+      <span class="c-hook">
+        <input class="ch-l1" value="${esc(r.line1)}" placeholder="1줄(검정)">
+        <input class="ch-l2" value="${esc(r.line2)}" placeholder="2줄(주황)"></span>
+      <span class="c-st">${prod ? "✅ 생산" : (today ? "⭐ 오늘" : "예정")}</span>
+      <span class="c-act"><button class="ghost mini ch-build">구성</button></span>
+    </div>`;
+  }).join("") || '<div class="hint" style="padding:1rem">표시할 행이 없습니다. 후크 생성 또는 필터를 확인하세요.</div>';
+  $("campList").querySelectorAll(".camp-row").forEach(row => {
+    const ch = +row.dataset.ch, mbti = row.dataset.mbti;
+    const l1 = row.querySelector(".ch-l1"), l2 = row.querySelector(".ch-l2");
+    const save = () => saveHook(ch, mbti, l1.value, l2.value);
+    l1.onchange = save; l2.onchange = save;
+    row.querySelector(".ch-build").onclick = () => applyAssignment(ch, mbti, l1.value, l2.value);
+  });
+}
+async function saveHook(chapter, mbti, line1, line2) {
+  try {
+    await api("/api/campaign/hooks", { method: "POST", body: JSON.stringify({ chapter, mbti, line1, line2 }) });
+    const r = CAMP.rows.find(x => x.chapter === chapter && x.mbti === mbti);
+    if (r) { r.line1 = line1; r.line2 = line2; r.edited = 1; }
+    $("campStatus").textContent = `✓ ${chapter}장 ${mbti} 저장됨`;
+  } catch (e) { $("campStatus").textContent = "저장 실패: " + e.message; }
+}
+async function genChapterHooks() {
+  const ch = +$("campChapter").value;
+  if (!ch) return;
+  $("campGenBtn").disabled = true; $("campStatus").textContent = `${ch}장 16유형 후크 생성 중…`;
+  try {
+    await api("/api/campaign/hooks/gen", { method: "POST", body: JSON.stringify({ chapter: ch }) });
+    await loadCampaign();
+    $("campStatus").textContent = `✓ ${ch}장 후크 생성됨`;
+  } catch (e) { $("campStatus").textContent = "생성 실패: " + e.message; }
+  finally { $("campGenBtn").disabled = false; }
+}
+async function applyAssignment(chapter, mbti, line1, line2) {
+  const pad = String(chapter).padStart(2, "0");
+  const sel = $("bundleSel");
+  const opt = [...sel.options].find(o => o.value.replace(/\\/g, "/").toLowerCase().endsWith(`ch${pad}_bundle`));
+  if (!opt) { alert(`ch${pad}_bundle 을 번들 목록에서 찾지 못했습니다 (제작 탭에서 직접 선택).`); return; }
+  sel.value = opt.value; $("bundlePath").value = "";
+  CAMP.assign = { chapter, mbti };
+  showTab("make");
+  await compose();                              // 씬 구성(+AI 자막)
+  const hook = [line1, line2].filter(Boolean).join("\n");
+  if (hook) applyHookToAll(hook);              // MBTI 후크로 덮어쓰기(aiFill 후크 대체)
+  $("aiStatus").textContent = `🗓 ${chapter}장 · ${mbti} 구성됨 — 검토 후 렌더하면 자동 '생산' 기록`;
+}
+
 // ---------- wire ----------
+$("tabBtnMake").onclick = () => showTab("make");
+$("tabBtnCampaign").onclick = () => showTab("campaign");
+$("campSeries").onchange = (e) => setActiveSeries(e.target.value);
+$("campGenBtn").onclick = genChapterHooks;
+$("campJumpBtn").onclick = () => { const nd = nextUnproducedDay(); if (nd) { ["campFilterStatus", "campFilterMbti", "campFilterChapter"].forEach(id => $(id).value = ""); renderCampList(); const el = $("campList").querySelector(".camp-row.today"); if (el) el.scrollIntoView({ block: "center" }); } };
+["campFilterStatus", "campFilterMbti", "campFilterChapter"].forEach(id => { $(id).onchange = renderCampList; });
 $("refreshBtn").onclick = refreshBundles;
 $("composeBtn").onclick = compose;
 $("aiFillHookBtn").onclick = () => aiFill({ only: "hook" });

@@ -28,7 +28,7 @@ try:
 except Exception:
     pass
 
-from shortsmaker import llm, tts
+from shortsmaker import campaign, llm, series, tts
 from shortsmaker.bundle import load_bundle
 from shortsmaker.fonts import find_font
 from shortsmaker.shorts import Beat, ShortsConfig, ShortsSpec, build_default_spec, build_shorts
@@ -42,6 +42,15 @@ DEFAULT_ROOTS: List[str] = []
 
 
 def _bundle_roots() -> List[Path]:
+    # 시리즈 루트(SHORTS_SERIES_ROOT)가 설정되면 활성 시리즈의 input 만(미정이면 전체 시리즈 input) 사용.
+    sroot = series.series_root()
+    if sroot and sroot.is_dir():
+        active_in = series.input_dir()
+        if active_in and active_in.is_dir():
+            return [active_in]
+        return [d / "input" for d in sorted(sroot.iterdir())
+                if d.is_dir() and (d / "input").is_dir()]
+    # 폴백: 레거시 정적 루트(SHORTS_BUNDLE_ROOTS)
     roots = [Path(p) for p in (os.environ.get("SHORTS_BUNDLE_ROOTS") or "").split(";") if p.strip()]
     roots += [Path(p) for p in DEFAULT_ROOTS]
     return [r for r in roots if r.exists()]
@@ -218,6 +227,76 @@ async def llm_set_model(req: ModelReq):
         return await asyncio.to_thread(llm.set_model, req.model)
     except llm.LLMUnavailable as e:
         raise HTTPException(400, str(e))
+
+
+# ---------------- 캠페인 (MBTI 후크 × 무중복 스케줄) ----------------
+class SeriesReq(BaseModel):
+    series: str
+
+
+class ChapterReq(BaseModel):
+    chapter: int
+
+
+class HookReq(BaseModel):
+    chapter: int
+    mbti: str
+    line1: str = ""
+    line2: str = ""
+
+
+class ProducedReq(BaseModel):
+    chapter: int
+    mbti: str
+    video_path: str = ""
+
+
+@app.get("/api/series")
+async def series_list():
+    return {"series": series.list_series(), "active": series.active_series()}
+
+
+@app.post("/api/series/active")
+async def series_set_active(req: SeriesReq):
+    active = await asyncio.to_thread(series.set_active, req.series)
+    await asyncio.to_thread(campaign.ensure_campaign)   # 전환된 시리즈 캠페인 보장
+    return {"ok": True, "active": active}
+
+
+@app.get("/api/campaign/state")
+async def campaign_state():
+    return await asyncio.to_thread(campaign.progress)
+
+
+@app.get("/api/campaign/list")
+async def campaign_list():
+    rows = await asyncio.to_thread(campaign.master_list)
+    return {"rows": rows, "progress": await asyncio.to_thread(campaign.progress)}
+
+
+@app.post("/api/campaign/hooks/gen")
+async def campaign_hooks_gen(req: ChapterReq):
+    if not llm.available():
+        raise HTTPException(400, "LLM 미연결 — 로그인 후 사용하세요")
+    try:
+        return await asyncio.to_thread(campaign.gen_hooks, req.chapter)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/campaign/hooks")
+async def campaign_hooks_get(chapter: int):
+    return await asyncio.to_thread(campaign.get_hooks, chapter)
+
+
+@app.post("/api/campaign/hooks")
+async def campaign_hooks_set(req: HookReq):
+    return await asyncio.to_thread(campaign.update_hook, req.chapter, req.mbti, req.line1, req.line2)
+
+
+@app.post("/api/campaign/produced")
+async def campaign_produced(req: ProducedReq):
+    return await asyncio.to_thread(campaign.mark_produced, req.chapter, req.mbti, req.video_path)
 
 
 @app.get("/api/bundles")
@@ -410,7 +489,8 @@ async def _run_render(job: Job, req: RenderRequest) -> None:
                            hook_scale1=req.hook_scale1, hook_scale2=req.hook_scale2,
                            hook_color1=req.hook_color1, hook_color2=req.hook_color2)
         out_name = (Path(req.bundle_dir).name or "shorts").replace("_bundle", "")
-        out_path = DATA / f"{out_name}_{job.id[:8]}_shorts.mp4"
+        out_dir = series.output_dir() or DATA      # 활성 시리즈 output, 없으면 data 폴백
+        out_path = out_dir / f"{out_name}_{job.id[:8]}_shorts.mp4"
         work = DATA / f"_work_{job.id[:8]}"
 
         def _log(m: str) -> None:
@@ -523,7 +603,7 @@ async def render_status(job_id: str):
     if not job:
         raise HTTPException(404, "job 없음")
     return {"running": job.running, "logs": job.logs, "error": job.error,
-            "done": bool(job.path) or bool(job.data), "data": job.data}
+            "done": bool(job.path) or bool(job.data), "data": job.data, "path": job.path}
 
 
 @app.get("/api/video/{job_id}")

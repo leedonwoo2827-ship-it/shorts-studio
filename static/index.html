@@ -41,6 +41,12 @@
       상위 모델은 상위 구독에서만 동작할 수 있습니다(미동작 시 기본값으로 자동 폴백).</p>
   </section>
 
+  <nav class="tabs">
+    <button id="tabBtnMake" class="tab active">🎬 제작</button>
+    <button id="tabBtnCampaign" class="tab">🗓 캠페인</button>
+  </nav>
+
+  <div id="tabMake">
   <!-- 1) 번들 -->
   <section class="card">
     <h2>① 번들 선택</h2>
@@ -166,6 +172,34 @@
         <pre id="metaOut" class="logs" style="display:none"></pre>
       </section>
     </div>
+  </div>
+  </div><!-- /tabMake -->
+
+  <!-- 캠페인 탭 -->
+  <div id="tabCampaign" style="display:none">
+    <section class="card" id="campaignPanel">
+      <h2>🗓 MBTI 후크 캠페인 <small>장 × 16유형 = 무중복 일일 스케줄</small></h2>
+      <div class="row">
+        <div><label>시리즈</label><select id="campSeries"></select></div>
+        <div style="flex:2"><label>진행률</label><div id="campProgress" class="hint">—</div></div>
+        <div><label>&nbsp;</label><button id="campJumpBtn" class="ghost">⤵ 다음 미생산으로</button></div>
+      </div>
+      <div class="row">
+        <div><label>장 선택</label><select id="campChapter"></select></div>
+        <div><label>&nbsp;</label><button id="campGenBtn" class="ghost">✨ 16유형 후크 생성</button></div>
+        <div style="flex:2"><label>&nbsp;</label><span id="campStatus" class="hint">행의 [구성]을 누르면 제작 탭으로 보냅니다</span></div>
+      </div>
+      <div class="row" style="margin-bottom:.4rem">
+        <div><label>상태</label><select id="campFilterStatus"><option value="">전체</option><option value="planned">예정</option><option value="produced">생산</option></select></div>
+        <div><label>MBTI</label><select id="campFilterMbti"><option value="">전체</option></select></div>
+        <div><label>장</label><select id="campFilterChapter"><option value="">전체</option></select></div>
+      </div>
+      <div class="camp-head">
+        <span class="c-day">Day</span><span class="c-ch">장</span><span class="c-mbti">MBTI</span>
+        <span class="c-hook">후크 (1줄 검정 / 2줄 주황)</span><span class="c-st">상태</span><span class="c-act"></span>
+      </div>
+      <div id="campList" class="camp-list"></div>
+    </section>
   </div>
 </main>
 
