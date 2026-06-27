@@ -35,8 +35,8 @@ W = 1080
 H = 1920
 # 고정 밴드(흰색) 비율 — 영상만 변동, 프레임은 일정(레퍼런스 스타일).
 HEADER_H = 404
-FOOTER_H = 212
-VIDEO_H = H - HEADER_H - FOOTER_H   # 1304
+FOOTER_H = 300                      # 하단 흰 띠(해시태그 3줄 수용)
+VIDEO_H = H - HEADER_H - FOOTER_H   # 1216
 
 # 비트별 영상 구성: False=단일 이미지, True=좌/우 2분할 콜라주. 인덱스로 순환(변동).
 SPLIT_PATTERN = [False, False, True, False, True, False]
@@ -430,7 +430,7 @@ def _write_ass(ass_path: Path, spec: ShortsSpec, cfg: ShortsConfig) -> None:
     cx = Wd // 2
     hook_y1 = int(HEADER_H * 0.46)
     hook_y2 = int(HEADER_H * 0.74)
-    cap_y = HEADER_H + vid_h - int(vid_h * 0.06)
+    cap_y = HEADER_H + int(vid_h * 0.74)   # 자막을 위로(하단 6%→영상 74% 지점), 3줄 여유
     tag_y = HEADER_H + vid_h + FOOTER_H // 2
 
     events: List[str] = list(_chrome_events())
@@ -448,8 +448,8 @@ def _write_ass(ass_path: Path, spec: ShortsSpec, cfg: ShortsConfig) -> None:
             cap = _wrap_one(b.caption.replace("\\n", " "), 22)
             events.append(f"Dialogue: 0,{st},{en},Cap,,0,0,0,,{{\\an5\\pos({cx},{cap_y})}}{cap}")
 
-    # 해시태그 (하단 띠, 상시 노출, 최대 2줄로 줄바꿈) — 길이 숫자는 표시하지 않음
-    tags = _wrap_tags(spec.hashtags, 22, 2)
+    # 해시태그 (하단 띠, 상시 노출, 최대 3줄로 줄바꿈) — 길이 숫자는 표시하지 않음
+    tags = _wrap_tags(spec.hashtags, 22, 3)
     if tags.strip():
         events.append(f"Dialogue: 0,0:00:00.00,{_ass_time(spec.total)},Tag,,0,0,0,,{{\\an5\\pos({cx},{tag_y})}}{tags}")
 
