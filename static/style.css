@@ -60,7 +60,8 @@ button:disabled{opacity:.5;cursor:default}
 .verify-result .alt:hover{border-color:var(--accent);background:#f3f6ff}
 
 /* 탭 */
-.tabs{display:flex;gap:.4rem;margin-bottom:1rem}
+.tabs{display:flex;gap:.4rem;margin:0}
+.tabs .tab{padding:.4rem .9rem}
 .tabs .tab{background:var(--panel);border:1px solid var(--border);color:var(--muted);font-weight:600}
 .tabs .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 

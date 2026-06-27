@@ -9,6 +9,10 @@
 <body>
 <header>
   <h1>🎬 쇼츠공방 <small>세로 9:16 쇼츠 메이커</small></h1>
+  <nav class="tabs">
+    <button id="tabBtnCampaign" class="tab active">🗓 캠페인</button>
+    <button id="tabBtnMake" class="tab">🎬 제작</button>
+  </nav>
   <span id="llmChip" class="chip" style="cursor:pointer" title="LLM 계정 설정">LLM 확인 중…</span>
 </header>
 
@@ -40,11 +44,6 @@
     <p class="hint">로그인하면 새 터미널 창이 열립니다(브라우저 OAuth). 다른 계정으로 바꾸려면 <b>로그아웃 → 로그인</b>.<br>
       상위 모델은 상위 구독에서만 동작할 수 있습니다(미동작 시 기본값으로 자동 폴백).</p>
   </section>
-
-  <nav class="tabs">
-    <button id="tabBtnCampaign" class="tab active">🗓 캠페인</button>
-    <button id="tabBtnMake" class="tab">🎬 제작</button>
-  </nav>
 
   <div id="tabMake">
   <!-- 1) 번들 -->
