@@ -310,6 +310,21 @@ async def campaign_regen_one(req: MbtiChapterReq):
         raise HTTPException(400, str(e))
 
 
+class HashtagsReq(BaseModel):
+    title: str = ""
+    scenes: List[Dict[str, Any]] = []
+
+
+@app.post("/api/ai-hashtags")
+async def ai_hashtags(req: HashtagsReq):
+    if not llm.available():
+        raise HTTPException(400, "LLM 미연결")
+    try:
+        return {"hashtags": await asyncio.to_thread(llm.gen_hashtags, req.title, req.scenes)}
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/campaign/captions")
 async def campaign_captions(req: MbtiCaptionsReq):
     if not llm.available():

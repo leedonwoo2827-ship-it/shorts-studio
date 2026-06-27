@@ -594,9 +594,23 @@ async function applyAssignment(chapter, mbti, line1, line2, mood) {
   if (hook) applyHookToAll(hook);              // 뱅크의 MBTI 후크 주입
   if (STATE.llmReady) {
     await regenCaptions();                      // 자막도 MBTI 무드 톤으로 생성
+    await genHashtags();                        // 해시태그 넉넉히 자동 생성
     await verifyContent();                      // 사실검증
   }
   $("aiStatus").textContent = `🗓 ${chapter}장 · ${mbti} 구성됨 — 무드 따라 톤·내용 다듬고 렌더하면 자동 '생산'`;
+}
+async function genHashtags() {
+  if (!STATE.spec.beats.length) return;
+  const scenes = STATE.spec.beats.map(b => {
+    const s = STATE.allScenes.find(x => x.scene_index === b.scene_index) || {};
+    return { scene_index: b.scene_index, narration: s.narration || b.caption || "" };
+  });
+  const btn = $("hashtagBtn"); if (btn) btn.disabled = true;
+  try {
+    const d = await api("/api/ai-hashtags", { method: "POST", body: JSON.stringify({ title: STATE.spec.title, scenes }) });
+    if (d.hashtags) $("hashtags").value = d.hashtags;
+  } catch (e) { /* 해시태그 생성 실패는 조용히 무시(직접 입력 가능) */ }
+  finally { if (btn) btn.disabled = false; }
 }
 // 제작 탭 "AI 후크 다시": 캠페인 구성 중이면 그 MBTI 무드로 새 후크, 아니면 일반
 async function regenHook() {
@@ -660,6 +674,7 @@ $("hookSaveBtn").onclick = saveCurrentHook;
 $("addSceneBtn").onclick = openModal;
 $("modalClose").onclick = closeModal;
 $("ttsBtn").onclick = ttsSync;
+$("hashtagBtn").onclick = genHashtags;
 $("renderBtn").onclick = doRender;
 $("metaBtn").onclick = genMeta;
 $("metaCopyBtn").onclick = copyMeta;
