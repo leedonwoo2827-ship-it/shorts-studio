@@ -106,7 +106,9 @@ async function compose(keepCampaign = false) {
     renderBeats();
     $("workspace").style.display = "flex";
     $("bundleHint").textContent = `자동 구성 완료 — 씬 ${spec.beats.length}개`;
-    if (STATE.llmReady) {
+    if (keepCampaign) {
+      // 캠페인 구성: 후크·자막은 applyAssignment 가 MBTI 무드로 채움(여기선 일반 생성 건너뜀)
+    } else if (STATE.llmReady) {
       await aiFill({});        // AI로 후크·해시태그·자막 자동 채움
       await verifyContent();   // 이어서 자동 검토 → 각 자막 밑에 근거 표시
     } else {
@@ -587,10 +589,48 @@ async function applyAssignment(chapter, mbti, line1, line2, mood) {
   CAMP.assign = { chapter, mbti };
   showTab("make");
   setBuildBanner(chapter, mbti, mood);          // 제작 탭에 "N장·MBTI·무드" 표시
-  await compose(true);                          // 씬 구성(+AI 자막), 배너 유지
+  await compose(true);                          // 씬 구성(일반 자동생성은 건너뜀)
   const hook = [line1, line2].filter(Boolean).join("\n");
-  if (hook) applyHookToAll(hook);              // MBTI 후크로 덮어쓰기(aiFill 후크 대체)
+  if (hook) applyHookToAll(hook);              // 뱅크의 MBTI 후크 주입
+  if (STATE.llmReady) {
+    await regenCaptions();                      // 자막도 MBTI 무드 톤으로 생성
+    await verifyContent();                      // 사실검증
+  }
   $("aiStatus").textContent = `🗓 ${chapter}장 · ${mbti} 구성됨 — 무드 따라 톤·내용 다듬고 렌더하면 자동 '생산'`;
+}
+// 제작 탭 "AI 후크 다시": 캠페인 구성 중이면 그 MBTI 무드로 새 후크, 아니면 일반
+async function regenHook() {
+  if (!CAMP.assign) { aiFill({ only: "hook" }); return; }
+  const { chapter, mbti } = CAMP.assign;
+  const btn = $("aiFillHookBtn"); if (btn) btn.disabled = true;
+  $("aiStatus").textContent = `${mbti} 후크 다시 생성 중…`;
+  try {
+    const d = await api("/api/campaign/hooks/regen-one", { method: "POST", body: JSON.stringify({ chapter, mbti }) });
+    const hook = [d.line1, d.line2].filter(Boolean).join("\n");
+    if (hook) applyHookToAll(hook);
+    $("aiStatus").textContent = `✓ ${mbti} 후크 새 제안 — 다시 누르면 또 다른 안`;
+  } catch (e) { $("aiStatus").textContent = "후크 생성 실패: " + e.message; }
+  finally { if (btn) btn.disabled = false; }
+}
+// 제작 탭 "AI 자막 다시": 캠페인 구성 중이면 그 MBTI 무드 톤으로 자막, 아니면 일반
+async function regenCaptions() {
+  if (!STATE.spec.beats.length) return;
+  if (!CAMP.assign) { return aiFill({ only: "captions" }); }
+  const { chapter, mbti } = CAMP.assign;
+  const scenes = STATE.spec.beats.map(b => {
+    const s = STATE.allScenes.find(x => x.scene_index === b.scene_index) || {};
+    return { scene_index: b.scene_index, narration: s.narration || b.caption || "" };
+  });
+  const btn = $("aiFillCapBtn"); if (btn) btn.disabled = true;
+  $("aiStatus").textContent = `${mbti} 무드로 자막 생성 중…`;
+  try {
+    const d = await api("/api/campaign/captions", { method: "POST", body: JSON.stringify({ title: STATE.spec.title, scenes, mbti }) });
+    const caps = d.captions || {};
+    STATE.spec.beats.forEach(b => { if (caps[b.scene_index]) { b.caption = caps[b.scene_index]; delete b._verify; } });
+    renderBeats();
+    $("aiStatus").textContent = `✓ ${mbti} 무드 자막 적용 — 사실은 검토로 확인`;
+  } catch (e) { $("aiStatus").textContent = "자막 생성 실패: " + e.message; }
+  finally { if (btn) btn.disabled = false; }
 }
 function setBuildBanner(chapter, mbti, mood) {
   const b = $("buildBanner");
@@ -612,8 +652,8 @@ $("campJumpBtn").onclick = () => { const nd = nextUnproducedDay(); if (nd) { ["c
 ["campFilterStatus", "campFilterMbti", "campFilterChapter"].forEach(id => { $(id).onchange = renderCampList; });
 $("refreshBtn").onclick = refreshBundles;
 $("composeBtn").onclick = () => compose();
-$("aiFillHookBtn").onclick = () => aiFill({ only: "hook" });
-$("aiFillCapBtn").onclick = () => aiFill({ only: "captions" });
+$("aiFillHookBtn").onclick = regenHook;
+$("aiFillCapBtn").onclick = regenCaptions;
 $("verifyBtn").onclick = verifyContent;
 $("hookStore").onchange = (e) => applyHookToAll(e.target.value);
 $("hookSaveBtn").onclick = saveCurrentHook;

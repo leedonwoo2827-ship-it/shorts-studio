@@ -289,6 +289,38 @@ async def campaign_hooks_get(chapter: int):
     return await asyncio.to_thread(campaign.get_hooks, chapter)
 
 
+class MbtiChapterReq(BaseModel):
+    chapter: int
+    mbti: str
+
+
+class MbtiCaptionsReq(BaseModel):
+    title: str = ""
+    scenes: List[Dict[str, Any]] = []
+    mbti: str
+
+
+@app.post("/api/campaign/hooks/regen-one")
+async def campaign_regen_one(req: MbtiChapterReq):
+    if not llm.available():
+        raise HTTPException(400, "LLM 미연결 — 로그인 후 사용하세요")
+    try:
+        return await asyncio.to_thread(campaign.regen_one_hook, req.chapter, req.mbti)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/campaign/captions")
+async def campaign_captions(req: MbtiCaptionsReq):
+    if not llm.available():
+        raise HTTPException(400, "LLM 미연결 — 로그인 후 사용하세요")
+    try:
+        caps = await asyncio.to_thread(campaign.mbti_captions, req.title, req.scenes, req.mbti)
+        return {"captions": caps}
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(400, str(e))
+
+
 @app.post("/api/campaign/hooks")
 async def campaign_hooks_set(req: HookReq):
     return await asyncio.to_thread(campaign.update_hook, req.chapter, req.mbti, req.line1, req.line2)

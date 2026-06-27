@@ -25,10 +25,14 @@ LLMUnavailable = llm_kit.LLMUnavailable
 _INDEP = ("각 자막은 그 자체로 완결된 독립 문장입니다. 주어와 서술어를 갖추고, 앞/뒤 씬을 가리키는 "
           "접속어·지시어('이에 맞서·뒤이어·그래서·결국·그·이·저·이런·이렇게' 등)에 의존하지 마세요. "
           "어떤 순서로 읽어도 그 문장 하나만으로 이해돼야 합니다.")
+# 단어 그라운딩(RAG처럼): 무드를 입히되 소재·고유명사는 원본에서만. '파티' 류 환각 방지.
+_GROUND = ("★ 단어는 원본 근거(RAG처럼): 핵심 소재·고유명사·사실 단어는 원본 내레이션에 실제로 나온 것만 쓰세요. "
+           "어려운 용어는 일반적이고 쉬운 말로 풀어 써도 되지만(뜻은 유지), 원본에 없는 새 소재·고유명사"
+           "(예: '파티·축제·콘서트' 등)를 지어내지 마세요. 무드는 어조·에너지(어미·문형)로만 표현하세요.")
 __all__ = ["LLMUnavailable", "available", "status", "complete", "set_provider", "logout",
            "login_cmd", "launch_login", "list_models", "get_model", "set_model",
            "suggest_hook", "suggest_caption", "gen_fill", "verify_captions", "tidy_all",
-           "gen_mbti_hooks", "shorts_meta"]
+           "gen_mbti_hooks", "gen_one_mbti_hook", "gen_mbti_captions", "shorts_meta"]
 
 
 def _use_bridge() -> bool:
@@ -234,6 +238,7 @@ def gen_mbti_hooks(title: str, scenes: list, moods: dict | None = None) -> dict:
         + mood_rule +
         "- 2줄 형식: 1줄=호기심·도발 질문형(16자 이내), 2줄='끝까지/봐야 한다·보고 싶다'류(16자 이내).\n"
         f"- {_INDEP}\n"
+        f"- {_GROUND}\n"
         "- 16개 후크의 표현·소재가 서로 겹치지 않게 하세요.\n\n"
         "## 출력 형식 (유형마다 정확히 한 줄, 다른 말 없이)\n"
         "ENTJ | 1줄 ;; 2줄\n"
@@ -251,6 +256,59 @@ def gen_mbti_hooks(title: str, scenes: list, moods: dict | None = None) -> dict:
         if not parts:
             continue
         out[mbti] = {"line1": parts[0], "line2": (parts[1] if len(parts) > 1 else "")}
+    return out
+
+
+def gen_one_mbti_hook(title: str, scenes: list, mbti: str, mood: str = "") -> dict:
+    """한 장 + 한 MBTI(무드)로 후크 1개를 새로 제안. 반복 호출 시 다른 각도로. 반환 {line1, line2}."""
+    briefs = "\n".join(f"씬{s.get('scene_index')}: {(s.get('narration') or s.get('subtitle') or '')[:160]}"
+                       for s in scenes)
+    prompt = (
+        f"당신은 유튜브 쇼츠 후크 카피라이터입니다. 아래 한 장(章)의 내용으로 **{mbti.upper()} 유형을 겨냥한** "
+        "세로 쇼츠 상단 후크 1개를 새로 제안하세요.\n"
+        + (f"- 무드(페르소나): {mood}\n" if mood else "")
+        + "- 2줄: 1줄=호기심·도발 질문형(16자 이내), 2줄='끝까지/봐야 한다·보고 싶다'류(16자 이내).\n"
+        f"- {_INDEP}\n"
+        f"- {_GROUND}\n"
+        "- 이전 제안과 다른 새로운 각도·표현으로(다양하게).\n"
+        "- 따옴표·설명 없이 아래 형식 한 줄만.\n\n"
+        "## 출력 형식 (정확히 한 줄)\n1줄 ;; 2줄\n\n"
+        f"## 제목\n{title}\n\n## 장 내용\n{briefs}"
+    )
+    raw = complete(prompt, max_tokens=120)
+    for line in (raw or "").splitlines():
+        parts = [p.strip() for p in re.split(r";;|；；", line.strip()) if p.strip()]
+        if parts:
+            return {"line1": parts[0], "line2": (parts[1] if len(parts) > 1 else "")}
+    return {"line1": (raw or "").strip().split("\n")[0][:16], "line2": ""}
+
+
+def gen_mbti_captions(title: str, scenes: list, mbti: str, mood: str = "") -> dict:
+    """한 장 + MBTI 무드로 씬별 음성 자막(구어체 대본)을 재생성. scenes:[{scene_index,narration}].
+    반환 {idx: caption}. 무드 톤을 입히되 원본 내레이션에 충실(사실 변경 금지), 독립 완결 문장."""
+    last_idx = scenes[-1]["scene_index"] if scenes else 0
+    items = "\n".join(
+        f"씬{s.get('scene_index')}: {(s.get('narration') or s.get('subtitle') or '')[:200]}"
+        for s in scenes)
+    prompt = (
+        f"당신은 유튜브 쇼츠 '내레이션 대본' 작가입니다. 아래 장을 **{mbti.upper()} 유형**이 좋아할 톤으로 "
+        "씬별 음성 자막(말로 읽힘)을 다시 쓰세요.\n"
+        + (f"- 무드(톤): {mood}\n" if mood else "")
+        + "- 음성으로 읽히는 구어체 한 문장. 신문 제목·명사 끝맺음 금지. 22~40자.\n"
+        f"- {_INDEP}\n"
+        "- ★ 사실은 각 씬 원본 내용에 충실 — 없는 사실 추가·왜곡 금지. 무드는 어조·표현에만.\n"
+        "- 핵심 소재·고유명사는 원본 단어로(어려우면 쉬운 일반어로 풀되, 원본에 없는 새 소재어는 만들지 말 것).\n"
+        "- 어미를 줄마다 다양하게(~했어요/~거든요/~인데요/~답니다/질문형/감탄형).\n"
+        f"- 마지막 씬({last_idx})은 '전체 영상은 설명란에서' 류 CTA를 그 톤으로.\n\n"
+        "## 출력 형식 (씬마다 정확히 한 줄, 다른 말 없이)\n씬N: 자막\n\n"
+        f"## 제목\n{title}\n\n## 씬 내용\n{items}"
+    )
+    raw = complete(prompt, max_tokens=1100)
+    out: dict = {}
+    for line in (raw or "").splitlines():
+        m = re.match(r"^씬\s*(\d+)\s*[:：]\s*(.+)$", line.strip())
+        if m:
+            out[int(m.group(1))] = m.group(2).strip()
     return out
 
 

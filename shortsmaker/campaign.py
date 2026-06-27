@@ -216,6 +216,23 @@ def gen_hooks(chapter: int) -> dict:
     return get_hooks(chapter)
 
 
+def regen_one_hook(chapter: int, mbti: str) -> dict:
+    """그 장 + MBTI 무드로 후크 1개를 새로 제안(에디터용, 뱅크는 안 바꿈). 반환 {line1, line2}."""
+    bdir = _bundle_dir(chapter)
+    if not bdir:
+        raise FileNotFoundError(f"ch{chapter:02d}_bundle 을 활성 시리즈 input 에서 찾을 수 없습니다")
+    b = _bundle.load_bundle(bdir)
+    scenes = [{"scene_index": s.index, "narration": s.narration_text} for s in b.scenes]
+    mood = get_moods().get(mbti.upper(), "")
+    return _llm.gen_one_mbti_hook(b.title or f"{chapter}장", scenes, mbti.upper(), mood)
+
+
+def mbti_captions(title: str, scenes: list, mbti: str) -> dict:
+    """에디터의 현재 씬들(scenes:[{scene_index,narration}])을 그 MBTI 무드 톤으로 자막 재생성. {idx: caption}."""
+    mood = get_moods().get(mbti.upper(), "")
+    return _llm.gen_mbti_captions(title or "", scenes, mbti.upper(), mood)
+
+
 def get_hooks(chapter: int) -> dict:
     camp = ensure_campaign()
     with _conn() as cx:
