@@ -212,19 +212,26 @@ _MBTI16 = ["ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP",
            "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"]
 
 
-def gen_mbti_hooks(title: str, scenes: list) -> dict:
+def gen_mbti_hooks(title: str, scenes: list, moods: dict | None = None) -> dict:
     """한 장(章)의 내레이션을 근거로 MBTI 16유형을 각각 겨냥한 쇼츠 후크를 1회 호출로 생성.
 
-    scenes: [{scene_index, narration|subtitle}]. 반환: {"ENTJ": {"line1":..., "line2":...}, ...}.
+    scenes: [{scene_index, narration|subtitle}]. moods: {MBTI: '무드 한 줄'} (미리 정의한 페르소나).
+    반환: {"ENTJ": {"line1":..., "line2":...}, ...}.
     각 후크 2줄(1줄=검정 질문/도발형, 2줄=주황 '봐야 한다'형, 각 16자 이내), 유형 간 표현 중복 금지.
     """
     briefs = "\n".join(f"씬{s.get('scene_index')}: {(s.get('narration') or s.get('subtitle') or '')[:160]}"
                        for s in scenes)
+    if moods:
+        mood_block = "\n".join(f"- {m}: {moods.get(m, '')}" for m in _MBTI16 if moods.get(m))
+        mood_rule = ("- 각 유형의 후크는 아래 **무드(페르소나)**에 맞춰 1번 후크의 '미끼'와 어조를 다르게 잡으세요:\n"
+                     + mood_block + "\n")
+    else:
+        mood_rule = ("- 각 유형의 동기/관심사에 맞춰 1번 후크의 '미끼'를 다르게: 예) 분석형(NT)=원리·왜, "
+                     "이상형(NF)=의미·사람, 관리형(SJ)=순서·교훈, 모험형(SP)=장면·반전.\n")
     prompt = (
         "당신은 유튜브 쇼츠 후크 카피라이터입니다. 아래 한 장(章)의 내용으로 **MBTI 16유형 각각을 겨냥한** "
         "세로 쇼츠 상단 후크를 만드세요. 같은 장이지만 유형마다 *끌리는 포인트*가 달라야 합니다.\n"
-        "- 각 유형의 동기/관심사에 맞춰 1번 후크의 '미끼'를 다르게: 예) 분석형(NT)=원리·왜, 이상형(NF)=의미·사람, "
-        "관리형(SJ)=순서·교훈, 모험형(SP)=장면·반전. (유형 고정관념은 가볍게만 활용)\n"
+        + mood_rule +
         "- 2줄 형식: 1줄=호기심·도발 질문형(16자 이내), 2줄='끝까지/봐야 한다·보고 싶다'류(16자 이내).\n"
         f"- {_INDEP}\n"
         "- 16개 후크의 표현·소재가 서로 겹치지 않게 하세요.\n\n"

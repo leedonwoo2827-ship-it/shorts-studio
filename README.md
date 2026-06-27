@@ -142,6 +142,7 @@ chNN_bundle/
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — 파이프라인·모듈·렌더 방식
 - [docs/LLM-OAUTH-BRIDGE.md](docs/LLM-OAUTH-BRIDGE.md) — OAuth LLM/TTS 브리지 원리, 재사용 키트
 - [docs/BUNDLE-FORMAT.md](docs/BUNDLE-FORMAT.md) — 번들 폴더·스크립트 JSON 형식
+- [docs/CAMPAIGN.md](docs/CAMPAIGN.md) — MBTI 후크 캠페인: 무드·무중복 스케줄·라운드 순서·사용 시나리오
 - [docs/SERIES.md](docs/SERIES.md) — 시리즈별 자산(input/output) 물리 위치·전환
 - [docs/YOUTUBE_API.md](docs/YOUTUBE_API.md) — 조회수 연동(경로 A: API 키 / B: OAuth)과 MBTI·장 인사이트
 

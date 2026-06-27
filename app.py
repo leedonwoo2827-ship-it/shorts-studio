@@ -323,6 +323,21 @@ async def campaign_insights():
     return await asyncio.to_thread(campaign.insights)
 
 
+class MoodsReq(BaseModel):
+    moods: Dict[str, str]
+
+
+@app.get("/api/campaign/moods")
+async def campaign_moods_get():
+    return {"moods": await asyncio.to_thread(campaign.get_moods),
+            "order": campaign.MBTI_ROUND_ORDER}
+
+
+@app.post("/api/campaign/moods")
+async def campaign_moods_set(req: MoodsReq):
+    return await asyncio.to_thread(campaign.set_moods, req.moods)
+
+
 @app.get("/api/bundles")
 async def list_bundles(root: str = ""):
     roots = [Path(root)] if root.strip() else _bundle_roots()

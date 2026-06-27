@@ -78,13 +78,35 @@ button:disabled{opacity:.5;cursor:default}
 .camp-row .c-hook input{padding:.32rem .5rem;font-size:.82rem}
 .camp-row .c-st{font-size:.8rem;color:var(--muted)}
 .camp-row .c-act .mini{padding:.35rem .55rem;font-size:.78rem}
-.camp-row.today{background:#fff8e6}
-.camp-row.today .c-st{color:var(--warn);font-weight:600}
-.camp-row.done{background:#eefaf1}
-.camp-row.done .c-st{color:var(--accent2);font-weight:600}
+/* 행 3상태: 후크없음=흰 / 준비됨=노랑+검정글자 / 생산=다크네이비+흰글자 */
+.camp-row.empty{background:#fff}
+.camp-row.ready{background:#fff3bf;color:#1a1a1a}
+.camp-row.ready .c-mbti{color:#7a4d00}
+.camp-row.ready .ch-build{background:#111;color:#fff;border-color:#111;font-weight:700}
+.camp-row.done{background:#1f2a44;color:#fff}
+.camp-row.done small,.camp-row.done .c-st,.camp-row.done .c-day{color:#cbd5e1}
+.camp-row.done .c-mbti{color:#9ab8ff}
+.camp-row.done input:disabled{background:#2c3a5c;color:#dbe3f0;border-color:#3b4a6b;opacity:1}
+.camp-row.done .ch-yt input{background:#fff;color:#1f2430;border-color:#3b4a6b}
+.camp-row.done .ch-build[disabled]{background:#2c3a5c;color:#7e8aa3;border-color:#3b4a6b}
+.camp-row.today{box-shadow:inset 4px 0 0 var(--warn)}
+.camp-row.today .c-st{font-weight:700}
+.camp-row .ch-build[disabled]{opacity:.45;cursor:not-allowed}
 .camp-row .c-yt{display:flex;flex-direction:column;gap:.2rem}
 .camp-row .c-yt input{padding:.3rem .45rem;font-size:.78rem}
 .camp-row .c-yt .yt-views{color:var(--err);font-size:.8rem}
+
+/* 제작 탭 빌드 배너 */
+.build-banner{background:#eef3ff;border:1px solid #c7d6f7;border-left:4px solid var(--accent);border-radius:8px;padding:.5rem .8rem;margin-bottom:.7rem;font-size:.92rem}
+.build-banner .bb-mbti{color:var(--accent)}
+
+/* MBTI 무드 가이드 */
+.camp-moods{border:1px solid var(--border);border-radius:10px;padding:.8rem 1rem;margin-bottom:.8rem;background:var(--panel2)}
+.camp-moods .mood-note{font-size:.82rem;color:var(--muted);margin-bottom:.6rem}
+.camp-moods .mood-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem .9rem}
+.camp-moods .mood-row{display:grid;grid-template-columns:54px 1fr;gap:.4rem;align-items:center}
+.camp-moods .mood-key{font-weight:700;color:var(--accent);font-size:.84rem}
+.camp-moods .mood-in{padding:.32rem .5rem;font-size:.82rem}
 
 /* 인사이트 */
 .camp-insights{border:1px solid var(--border);border-radius:10px;padding:.8rem 1rem;margin-bottom:.8rem;background:var(--panel2)}

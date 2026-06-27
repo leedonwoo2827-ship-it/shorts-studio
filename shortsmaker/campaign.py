@@ -22,6 +22,34 @@ from . import youtube as _youtube
 MBTI16 = ["ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP",
           "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"]
 
+# 라운드(=한 MBTI로 전체 장을 한 바퀴, 17일) 진행 순서의 기본값. (campaign.mbti_order 로 편집 가능)
+# 근거: ① 인구 비율(잠재 도달; 감각형 73%, ISFJ/ESFJ/ISTJ 최다, 직관형 희소)
+#       ② 온라인·쇼츠 참여(외향·감각·감정형이 즉각 소구·바이럴, ISTP는 SNS 최저, 내향직관은 인구대비 유튜브 참여↑)
+# → 앞쪽 = 초반 조회수 잘 나올 가능성 높은 유형. 데이터 쌓이면 재정렬.
+MBTI_ROUND_ORDER = ["ESFP", "ESFJ", "ENFP", "ESTP", "ISFJ", "ISFP", "ISTJ", "ESTJ",
+                    "ENTP", "ENFJ", "INFP", "INTP", "ISTP", "INTJ", "ENTJ", "INFJ"]
+
+# MBTI 16유형별 기본 '무드'(지속 페르소나/분위기). 미리 1회 정의해 모든 장 후크 생성에 재사용.
+# 편집하면 campaign.moods(json)에 저장되고, 비어있으면 이 기본값 사용.
+MBTI_MOODS = {
+    "ISTJ": "믿음직한 정공법 — 검증된 사실로 차곡차곡",
+    "ISFJ": "따뜻한 보살핌 — 사람을 챙기는 시선",
+    "INFJ": "의미심장한 통찰 — 깊은 뜻을 짚어줌",
+    "INTJ": "냉철한 분석 — 원리와 큰 그림",
+    "ISTP": "쿨한 실용 — 작동 원리·핵심만",
+    "ISFP": "감성적 미감 — 장면과 분위기",
+    "INFP": "진정성 있는 울림 — 가치와 마음",
+    "INTP": "호기심 탐구 — '왜?'를 파고듦",
+    "ESTP": "짜릿한 반전 — 즉각적 흥미·스릴",
+    "ESFP": "활기찬 즐거움 — 신나고 생생하게",
+    "ENFP": "설레는 가능성 — 상상과 영감",
+    "ENTP": "도발적 역발상 — 통념 비틀기",
+    "ESTJ": "단호한 결론 — 핵심 교훈·실행",
+    "ESFJ": "다정한 공감 — 함께 느끼는 따뜻함",
+    "ENFJ": "영감 주는 리더십 — 동기부여·비전",
+    "ENTJ": "강력한 임팩트 — 큰 야망·결단",
+}
+
 _DB_PATH = Path(__file__).resolve().parent.parent / "data" / "campaign.db"
 _title_cache: dict = {}
 
@@ -55,6 +83,10 @@ def _conn() -> sqlite3.Connection:
             slot_id INT, fetched_at TEXT, view_count INT);
         """
     )
+    # 마이그레이션: campaign.moods(json) 컬럼이 없으면 추가
+    cols = {r["name"] for r in cx.execute("PRAGMA table_info(campaign)")}
+    if "moods" not in cols:
+        cx.execute("ALTER TABLE campaign ADD COLUMN moods TEXT")
     return cx
 
 
@@ -109,23 +141,53 @@ def ensure_campaign(name: Optional[str] = None, chapters: Optional[List[int]] = 
         row = cx.execute("SELECT * FROM campaign WHERE name=?", (name,)).fetchone()
         if row is None:
             cx.execute("INSERT INTO campaign(name, chapters, mbti_order, created) VALUES(?,?,?,?)",
-                       (name, json.dumps(chapters), json.dumps(MBTI16), _now()))
+                       (name, json.dumps(chapters), json.dumps(MBTI_ROUND_ORDER), _now()))
             row = cx.execute("SELECT * FROM campaign WHERE name=?", (name,)).fetchone()
-        elif chapters and json.loads(row["chapters"] or "[]") != chapters:
-            cx.execute("UPDATE campaign SET chapters=? WHERE id=?", (json.dumps(chapters), row["id"]))
-            row = cx.execute("SELECT * FROM campaign WHERE id=?", (row["id"],)).fetchone()
+        else:
+            sets, vals = [], []
+            if chapters and json.loads(row["chapters"] or "[]") != chapters:
+                sets.append("chapters=?"); vals.append(json.dumps(chapters))
+            # 레거시 기본 순서(MBTI16) 캠페인은 새 라운드 순서로 1회 자동 업그레이드(미커스텀일 때만)
+            if json.loads(row["mbti_order"] or "[]") == MBTI16:
+                sets.append("mbti_order=?"); vals.append(json.dumps(MBTI_ROUND_ORDER))
+            if sets:
+                vals.append(row["id"])
+                cx.execute(f"UPDATE campaign SET {', '.join(sets)} WHERE id=?", vals)
+                row = cx.execute("SELECT * FROM campaign WHERE id=?", (row["id"],)).fetchone()
         return _campaign_dict(row)
 
 
 def _campaign_dict(row: sqlite3.Row) -> dict:
     return {"id": row["id"], "name": row["name"],
             "chapters": json.loads(row["chapters"] or "[]"),
-            "mbti_order": json.loads(row["mbti_order"] or "[]") or MBTI16,
+            "mbti_order": json.loads(row["mbti_order"] or "[]") or MBTI_ROUND_ORDER,
             "created": row["created"]}
 
 
 def get_campaign() -> dict:
     return ensure_campaign()
+
+
+# ── MBTI 무드 가이드 (16개·미리 정의, 모든 장 후크 생성에 재사용) ──────────────
+def get_moods() -> dict:
+    """저장된 무드 맵(없으면 기본값). 누락 유형은 기본값으로 채움."""
+    camp = ensure_campaign()
+    with _conn() as cx:
+        row = cx.execute("SELECT moods FROM campaign WHERE id=?", (camp["id"],)).fetchone()
+    saved = {}
+    try:
+        saved = json.loads((row["moods"] if row else None) or "{}")
+    except Exception:
+        saved = {}
+    return {m: (saved.get(m) or MBTI_MOODS[m]) for m in MBTI16}
+
+
+def set_moods(moods: dict) -> dict:
+    camp = ensure_campaign()
+    clean = {m: str(moods.get(m, "")).strip() for m in MBTI16 if str(moods.get(m, "")).strip()}
+    with _conn() as cx:
+        cx.execute("UPDATE campaign SET moods=? WHERE id=?", (json.dumps(clean, ensure_ascii=False), camp["id"]))
+    return {"ok": True, "moods": get_moods()}
 
 
 # ── 후크 뱅크 ─────────────────────────────────────────────────────────────────
@@ -137,7 +199,7 @@ def gen_hooks(chapter: int) -> dict:
         raise FileNotFoundError(f"ch{chapter:02d}_bundle 을 활성 시리즈 input 에서 찾을 수 없습니다")
     b = _bundle.load_bundle(bdir)
     scenes = [{"scene_index": s.index, "narration": s.narration_text} for s in b.scenes]
-    hooks = _llm.gen_mbti_hooks(b.title or f"{chapter}장", scenes)
+    hooks = _llm.gen_mbti_hooks(b.title or f"{chapter}장", scenes, moods=get_moods())
     with _conn() as cx:
         edited = {r["mbti"] for r in cx.execute(
             "SELECT mbti FROM hook WHERE campaign_id=? AND chapter=? AND edited=1",
@@ -181,10 +243,11 @@ def _schedule(camp: dict) -> List[dict]:
     rows = []
     if n == 0:
         return rows
+    # 라운드 기반: 한 라운드(=N일) 동안 같은 MBTI로 장 1..N 을 쭉, 다음 라운드에 다음 MBTI.
     for d in range(1, n * m + 1):
-        c = (d - 1) % n
-        r = (d - 1) // n
-        rows.append({"day": d, "chapter": chapters[c], "mbti": mbti[(r + c) % m]})
+        c = (d - 1) % n          # 장 인덱스 (라운드 내에서 1..N 순환)
+        r = (d - 1) // n         # 라운드 인덱스 → MBTI 결정
+        rows.append({"day": d, "chapter": chapters[c], "mbti": mbti[r % m]})
     return rows
 
 
@@ -200,6 +263,7 @@ def master_list() -> List[dict]:
             "SELECT s.chapter,s.mbti,v.view_count FROM slot s JOIN view_stat v ON v.slot_id=s.id "
             "WHERE s.campaign_id=? AND v.id=(SELECT id FROM view_stat v2 WHERE v2.slot_id=s.id "
             "ORDER BY fetched_at DESC, id DESC LIMIT 1)", (camp["id"],))}
+    moods = get_moods()
     out = []
     for row in _schedule(camp):
         key = (row["chapter"], row["mbti"])
@@ -208,6 +272,7 @@ def master_list() -> List[dict]:
         out.append({
             "day": row["day"], "chapter": row["chapter"],
             "title": chapter_title(row["chapter"]), "mbti": row["mbti"],
+            "mood": moods.get(row["mbti"], ""),
             "line1": h["line1"] if h else "", "line2": h["line2"] if h else "",
             "edited": (h["edited"] if h else 0),
             "status": (sl["status"] if sl else "planned"),

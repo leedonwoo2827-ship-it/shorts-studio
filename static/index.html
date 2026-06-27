@@ -96,6 +96,7 @@
     <div style="flex:1.15; min-width:0">
       <section class="card" id="editSection">
         <h2>② 씬 구성 · 문구 편집 <small>상단 후크 / 중간 음성 자막 (하단 텍스트·해시태그는 오른쪽 ③)</small></h2>
+        <div id="buildBanner" class="build-banner" style="display:none"></div>
         <div class="row" style="margin-bottom:.5rem">
           <div style="flex:3"><label>💾 보관된 AI 후크 (선택하면 전 씬 적용)</label>
             <select id="hookStore"><option value="">— 후크 보관함 —</option></select></div>
@@ -187,10 +188,12 @@
       <div class="row">
         <div><label>장 선택</label><select id="campChapter"></select></div>
         <div><label>&nbsp;</label><button id="campGenBtn" class="ghost">✨ 16유형 후크 생성</button></div>
+        <div><label>&nbsp;</label><button id="campMoodBtn" class="ghost">🎭 무드 가이드</button></div>
         <div><label>&nbsp;</label><button id="campViewsBtn" class="ghost">📊 조회수 갱신</button></div>
         <div><label>&nbsp;</label><button id="campInsightBtn" class="ghost">💡 인사이트</button></div>
         <div style="flex:2"><label>&nbsp;</label><span id="campStatus" class="hint">행의 [구성]으로 제작 · 발행 후 YT칸에 URL 붙여넣고 조회수 갱신</span></div>
       </div>
+      <div id="campMoods" class="camp-moods" style="display:none"></div>
       <div id="campInsights" class="camp-insights" style="display:none"></div>
       <div class="row" style="margin-bottom:.4rem">
         <div><label>상태</label><select id="campFilterStatus"><option value="">전체</option><option value="planned">예정</option><option value="produced">생산</option></select></div>

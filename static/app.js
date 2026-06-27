@@ -89,7 +89,8 @@ function currentBundleDir() {
 }
 
 // ---------- compose ----------
-async function compose() {
+async function compose(keepCampaign = false) {
+  if (!keepCampaign) clearBuildBanner();   // 수동 구성이면 캠페인 배너·할당 해제
   const dir = currentBundleDir();
   if (!dir) { alert("번들을 선택하세요"); return; }
   STATE.bundleDir = dir;
@@ -448,28 +449,39 @@ function renderCampList() {
   $("campList").innerHTML = rows.map(r => {
     const today = r.day === nd ? " today" : "";
     const prod = r.status === "produced";
+    const hasHook = !!(r.line1 && r.line1.trim());
+    const state = prod ? "done" : (hasHook ? "ready" : "empty");   // 흰/노랑/네이비
     const views = (r.views != null) ? `<b class="yt-views">▶ ${r.views.toLocaleString()}</b>` : "";
-    return `<div class="camp-row${today}${prod ? " done" : ""}" data-ch="${r.chapter}" data-mbti="${r.mbti}">
+    const dis = prod ? " disabled" : "";
+    return `<div class="camp-row ${state}${today}" data-ch="${r.chapter}" data-mbti="${r.mbti}" data-mood="${esc(r.mood || "")}">
       <span class="c-day">${r.day}</span>
       <span class="c-ch">${r.chapter}장<small>${esc(r.title || "")}</small></span>
       <span class="c-mbti">${r.mbti}</span>
       <span class="c-hook">
-        <input class="ch-l1" value="${esc(r.line1)}" placeholder="1줄(검정)">
-        <input class="ch-l2" value="${esc(r.line2)}" placeholder="2줄(주황)"></span>
+        <input class="ch-l1" value="${esc(r.line1)}" placeholder="1줄(검정)"${dis}>
+        <input class="ch-l2" value="${esc(r.line2)}" placeholder="2줄(주황)"${dis}></span>
       <span class="c-yt">
         <input class="ch-yt" value="${esc(r.video_id)}" placeholder="발행 후 URL/ID 붙여넣기">
         ${views}</span>
-      <span class="c-st">${prod ? "✅ 생산" : (today ? "⭐ 오늘" : "예정")}</span>
-      <span class="c-act"><button class="ghost mini ch-build">구성</button></span>
+      <span class="c-st">${prod ? "✅ 생산" : (today ? "⭐ 오늘" : (hasHook ? "준비됨" : "후크 없음"))}</span>
+      <span class="c-act"><button class="ghost mini ch-build"${(!hasHook || prod) ? " disabled" : ""}>구성</button></span>
     </div>`;
   }).join("") || '<div class="hint" style="padding:1rem">표시할 행이 없습니다. 후크 생성 또는 필터를 확인하세요.</div>';
   $("campList").querySelectorAll(".camp-row").forEach(row => {
-    const ch = +row.dataset.ch, mbti = row.dataset.mbti;
+    const ch = +row.dataset.ch, mbti = row.dataset.mbti, mood = row.dataset.mood;
     const l1 = row.querySelector(".ch-l1"), l2 = row.querySelector(".ch-l2"), yt = row.querySelector(".ch-yt");
-    const save = () => saveHook(ch, mbti, l1.value, l2.value);
+    const build = row.querySelector(".ch-build");
+    const prod = row.classList.contains("done");
+    const save = () => {
+      saveHook(ch, mbti, l1.value, l2.value);
+      const has = !!l1.value.trim();
+      build.disabled = prod || !has;                    // 후크 입력되면 구성 활성
+      row.classList.toggle("ready", !prod && has);
+      row.classList.toggle("empty", !prod && !has);
+    };
     l1.onchange = save; l2.onchange = save;
     yt.onchange = () => saveVideo(ch, mbti, yt.value);
-    row.querySelector(".ch-build").onclick = () => applyAssignment(ch, mbti, l1.value, l2.value);
+    build.onclick = () => applyAssignment(ch, mbti, l1.value, l2.value, mood);
   });
 }
 async function saveVideo(chapter, mbti, video) {
@@ -511,6 +523,28 @@ async function saveHook(chapter, mbti, line1, line2) {
     $("campStatus").textContent = `✓ ${chapter}장 ${mbti} 저장됨`;
   } catch (e) { $("campStatus").textContent = "저장 실패: " + e.message; }
 }
+async function loadMoods() {
+  const box = $("campMoods");
+  if (box.style.display !== "none") { box.style.display = "none"; return; }
+  box.style.display = ""; box.innerHTML = "불러오는 중…";
+  try {
+    const d = await api("/api/campaign/moods");
+    const moods = d.moods || {}, order = d.order || Object.keys(moods);
+    box.innerHTML = `<div class="mood-note">🎭 MBTI 16유형 <b>무드</b>(지속 페르소나)를 미리 정의 — 후크 생성이 이 무드를 따릅니다. 순서 = 라운드 진행 순서.</div>
+      <div class="mood-grid">` +
+      order.map(m => `<div class="mood-row"><span class="mood-key">${m}</span><input class="mood-in" data-mbti="${m}" value="${esc(moods[m] || "")}"></div>`).join("") +
+      `</div><div class="toolbar"><button id="moodSaveBtn" class="ghost">💾 무드 저장</button><span id="moodStatus" class="hint"></span></div>`;
+    $("moodSaveBtn").onclick = saveMoods;
+  } catch (e) { box.innerHTML = "무드 로드 실패: " + e.message; }
+}
+async function saveMoods() {
+  const moods = {};
+  $("campMoods").querySelectorAll(".mood-in").forEach(i => { moods[i.dataset.mbti] = i.value; });
+  try {
+    await api("/api/campaign/moods", { method: "POST", body: JSON.stringify({ moods }) });
+    if ($("moodStatus")) $("moodStatus").textContent = "✓ 저장됨 — 다음 후크 생성부터 반영";
+  } catch (e) { if ($("moodStatus")) $("moodStatus").textContent = "저장 실패: " + e.message; }
+}
 async function genChapterHooks() {
   const ch = +$("campChapter").value;
   if (!ch) return;
@@ -522,7 +556,7 @@ async function genChapterHooks() {
   } catch (e) { $("campStatus").textContent = "생성 실패: " + e.message; }
   finally { $("campGenBtn").disabled = false; }
 }
-async function applyAssignment(chapter, mbti, line1, line2) {
+async function applyAssignment(chapter, mbti, line1, line2, mood) {
   const pad = String(chapter).padStart(2, "0");
   const sel = $("bundleSel");
   const opt = [...sel.options].find(o => o.value.replace(/\\/g, "/").toLowerCase().endsWith(`ch${pad}_bundle`));
@@ -530,23 +564,32 @@ async function applyAssignment(chapter, mbti, line1, line2) {
   sel.value = opt.value; $("bundlePath").value = "";
   CAMP.assign = { chapter, mbti };
   showTab("make");
-  await compose();                              // 씬 구성(+AI 자막)
+  setBuildBanner(chapter, mbti, mood);          // 제작 탭에 "N장·MBTI·무드" 표시
+  await compose(true);                          // 씬 구성(+AI 자막), 배너 유지
   const hook = [line1, line2].filter(Boolean).join("\n");
   if (hook) applyHookToAll(hook);              // MBTI 후크로 덮어쓰기(aiFill 후크 대체)
-  $("aiStatus").textContent = `🗓 ${chapter}장 · ${mbti} 구성됨 — 검토 후 렌더하면 자동 '생산' 기록`;
+  $("aiStatus").textContent = `🗓 ${chapter}장 · ${mbti} 구성됨 — 무드 따라 톤·내용 다듬고 렌더하면 자동 '생산'`;
 }
+function setBuildBanner(chapter, mbti, mood) {
+  const b = $("buildBanner");
+  if (!b) return;
+  b.innerHTML = `🗓 <b>${chapter}장</b> · <b class="bb-mbti">${esc(mbti)}</b>${mood ? ` · 무드: ${esc(mood)}` : ""}`;
+  b.style.display = "";
+}
+function clearBuildBanner() { const b = $("buildBanner"); if (b) b.style.display = "none"; CAMP.assign = null; }
 
 // ---------- wire ----------
 $("tabBtnMake").onclick = () => showTab("make");
 $("tabBtnCampaign").onclick = () => showTab("campaign");
 $("campSeries").onchange = (e) => setActiveSeries(e.target.value);
 $("campGenBtn").onclick = genChapterHooks;
+$("campMoodBtn").onclick = loadMoods;
 $("campViewsBtn").onclick = refreshViews;
 $("campInsightBtn").onclick = loadInsights;
 $("campJumpBtn").onclick = () => { const nd = nextUnproducedDay(); if (nd) { ["campFilterStatus", "campFilterMbti", "campFilterChapter"].forEach(id => $(id).value = ""); renderCampList(); const el = $("campList").querySelector(".camp-row.today"); if (el) el.scrollIntoView({ block: "center" }); } };
 ["campFilterStatus", "campFilterMbti", "campFilterChapter"].forEach(id => { $(id).onchange = renderCampList; });
 $("refreshBtn").onclick = refreshBundles;
-$("composeBtn").onclick = compose;
+$("composeBtn").onclick = () => compose();
 $("aiFillHookBtn").onclick = () => aiFill({ only: "hook" });
 $("aiFillCapBtn").onclick = () => aiFill({ only: "captions" });
 $("verifyBtn").onclick = verifyContent;
