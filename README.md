@@ -145,6 +145,7 @@ chNN_bundle/
 - [docs/CAMPAIGN.md](docs/CAMPAIGN.md) — MBTI 후크 캠페인: 무드·무중복 스케줄·라운드 순서·사용 시나리오
 - [docs/SERIES.md](docs/SERIES.md) — 시리즈별 자산(input/output) 물리 위치·전환
 - [docs/YOUTUBE_API.md](docs/YOUTUBE_API.md) — 조회수 연동(경로 A: API 키 / B: OAuth)과 MBTI·장 인사이트
+- [prompts/](prompts/) — LLM 스킬 프롬프트(후크·자막·검증·MBTI 등)를 코드 밖 텍스트로 관리 ([prompts/README.md](prompts/README.md))
 
 ## 의존
 ffmpeg, FastAPI, uvicorn. LLM·TTS는 외부 백엔드(영상공방의 codex/agy·VoiceWright)에 의존(설치 시 활성화).
