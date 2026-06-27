@@ -447,7 +447,8 @@ function renderCampList() {
   const nd = nextUnproducedDay();
   const rows = CAMP.rows.filter(r =>
     (!fs || r.status === fs) && (!fm || r.mbti === fm) && (!fc || String(r.chapter) === fc));
-  $("campList").innerHTML = rows.map(r => {
+  const N = CAMP.rows.length ? Math.round(CAMP.rows.length / 16) : 17;   // 장 수(=리스트당 글 수)
+  const rowHtml = (r) => {
     const today = r.day === nd ? " today" : "";
     const prod = r.status === "produced";
     const hasHook = !!(r.line1 && r.line1.trim());
@@ -467,7 +468,21 @@ function renderCampList() {
       <span class="c-st">${prod ? "✅ 생산" : (today ? "⭐ 오늘" : (hasHook ? "준비됨" : "후크 없음"))}</span>
       <span class="c-act"><button class="ghost mini ch-build"${(!hasHook || prod) ? " disabled" : ""}>구성</button></span>
     </div>`;
-  }).join("") || '<div class="hint" style="padding:1rem">표시할 행이 없습니다. 후크 생성 또는 필터를 확인하세요.</div>';
+  };
+  // 일자순 → 라운드(=한 MBTI로 17장)별로 자동 묶어 헤더 표시. 1리스트=1라운드=17개 글.
+  let html = "", lastMbti = null;
+  for (const r of rows) {
+    if (r.mbti !== lastMbti) {
+      lastMbti = r.mbti;
+      const round = Math.floor((r.day - 1) / N) + 1;
+      const grp = CAMP.rows.filter(x => x.mbti === r.mbti);
+      const done = grp.filter(x => x.status === "produced").length;
+      html += `<div class="camp-group"><b>${round}리스트</b> · <span class="cg-mbti">${r.mbti}</span>` +
+        `<small>${esc(r.mood || "")}</small><span class="cg-prog">${done}/${grp.length} 생산</span></div>`;
+    }
+    html += rowHtml(r);
+  }
+  $("campList").innerHTML = html || '<div class="hint" style="padding:1rem">표시할 행이 없습니다. 후크 생성 또는 필터를 확인하세요.</div>';
   $("campList").querySelectorAll(".camp-row").forEach(row => {
     const ch = +row.dataset.ch, mbti = row.dataset.mbti, mood = row.dataset.mood;
     const l1 = row.querySelector(".ch-l1"), l2 = row.querySelector(".ch-l2"), yt = row.querySelector(".ch-yt");
@@ -484,6 +499,12 @@ function renderCampList() {
     yt.onchange = () => saveVideo(ch, mbti, yt.value);
     build.onclick = () => applyAssignment(ch, mbti, l1.value, l2.value, mood);
   });
+  // 첫 화면을 '다음 미생산' 위치로 자동 이동(예: 1~17 생산되면 18번이 맨 위). 클릭으로 찾을 필요 X.
+  const t = $("campList").querySelector(".camp-row.today");
+  if (t) {
+    const grp = t.previousElementSibling;   // 그 줄의 라운드 헤더가 있으면 헤더부터 보이게
+    $("campList").scrollTop = Math.max(0, (grp && grp.classList.contains("camp-group") ? grp : t).offsetTop - 6);
+  }
 }
 async function saveVideo(chapter, mbti, video) {
   try {

@@ -68,7 +68,11 @@ button:disabled{opacity:.5;cursor:default}
 /* 캠페인 마스터 리스트 */
 .camp-head,.camp-row{display:grid;grid-template-columns:46px 1.3fr 58px 2.4fr 1.5fr 76px 64px;gap:.5rem;align-items:center}
 .camp-head{padding:.4rem .6rem;font-size:.76rem;color:var(--muted);font-weight:600;border-bottom:2px solid var(--border)}
-.camp-list{max-height:62vh;overflow:auto;border:1px solid var(--border);border-radius:10px}
+.camp-list{position:relative;max-height:62vh;overflow:auto;border:1px solid var(--border);border-radius:10px}
+.camp-group{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:.5rem;background:#eef1f6;border-bottom:1px solid var(--border);padding:.4rem .7rem;font-size:.85rem}
+.camp-group .cg-mbti{font-weight:800;color:var(--accent)}
+.camp-group small{color:var(--muted);font-weight:400}
+.camp-group .cg-prog{margin-left:auto;color:var(--muted);font-size:.78rem}
 .camp-row{padding:.45rem .6rem;border-bottom:1px solid var(--border);font-size:.85rem}
 .camp-row:last-child{border-bottom:none}
 .camp-row .c-day{font-weight:700;color:var(--muted)}
