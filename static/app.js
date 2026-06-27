@@ -18,6 +18,7 @@ async function boot() {
   await llmRefresh();
   await refreshBundles();
   loadHooks();
+  showTab("campaign");   // 시작 탭 = 캠페인(워크플로 시작점)
 }
 
 // ---------- LLM 계정 ----------
