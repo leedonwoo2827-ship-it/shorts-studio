@@ -569,6 +569,23 @@ async function saveMoods() {
     if ($("moodStatus")) $("moodStatus").textContent = "✓ 저장됨 — 다음 후크 생성부터 반영";
   } catch (e) { if ($("moodStatus")) $("moodStatus").textContent = "저장 실패: " + e.message; }
 }
+async function genAllChapterHooks() {
+  const chapters = [...new Set(CAMP.rows.map(r => r.chapter))];
+  const todo = chapters.filter(c => CAMP.rows.some(r => r.chapter === c && !(r.line1 && r.line1.trim())));
+  if (!todo.length) { $("campStatus").textContent = "모든 장에 이미 후크가 있습니다"; return; }
+  if (!confirm(`후크 없는 ${todo.length}개 장의 16유형 후크를 생성합니다(장당 ~30초). 진행할까요?`)) return;
+  const a = $("campGenAllBtn"), g = $("campGenBtn");
+  a.disabled = true; g.disabled = true;
+  try {
+    for (let i = 0; i < todo.length; i++) {
+      $("campStatus").textContent = `후크 생성 중… (${i + 1}/${todo.length} · ${todo[i]}장)`;
+      try { await api("/api/campaign/hooks/gen", { method: "POST", body: JSON.stringify({ chapter: todo[i] }) }); }
+      catch (e) { /* 한 장 실패해도 계속 */ }
+    }
+    await loadCampaign();
+    $("campStatus").textContent = `✓ ${todo.length}개 장 후크 생성 완료`;
+  } finally { a.disabled = false; g.disabled = false; }
+}
 async function genChapterHooks() {
   const ch = +$("campChapter").value;
   if (!ch) return;
@@ -659,6 +676,7 @@ $("tabBtnMake").onclick = () => showTab("make");
 $("tabBtnCampaign").onclick = () => showTab("campaign");
 $("campSeries").onchange = (e) => setActiveSeries(e.target.value);
 $("campGenBtn").onclick = genChapterHooks;
+$("campGenAllBtn").onclick = genAllChapterHooks;
 $("campMoodBtn").onclick = loadMoods;
 $("campViewsBtn").onclick = refreshViews;
 $("campInsightBtn").onclick = loadInsights;
