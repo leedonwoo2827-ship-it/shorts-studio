@@ -12,6 +12,8 @@ async function api(path, opts = {}) {
 }
 const img = (p) => `/api/image?path=${encodeURIComponent(p)}`;
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// 단색 라인 아이콘(스프라이트 참조) — 동적 마크업용
+const ico = (name) => `<svg class="ico"><use href="#i-${name}"/></svg>`;
 
 // ---------- init ----------
 async function boot() {
@@ -26,9 +28,9 @@ function applyLlmStatus(s) {
   STATE.llmReady = !!(s && s.ready);
   const chip = $("llmChip");
   if (s && s.ready) {
-    chip.textContent = `LLM: ${s.label || s.provider} ✓`; chip.className = "chip ok";
+    chip.innerHTML = ico("cpu") + `LLM: ${esc(s.label || s.provider)}`; chip.className = "chip ok";
   } else {
-    chip.textContent = "LLM 미로그인 (클릭)"; chip.className = "chip bad";
+    chip.innerHTML = ico("cpu") + "LLM 미로그인 (클릭)"; chip.className = "chip bad";
   }
   if (s && s.provider && $("llmProvider")) $("llmProvider").value = s.provider;
   if ($("llmInfo")) $("llmInfo").textContent = s && s.ready
@@ -191,10 +193,10 @@ function renderBeats() {
         </div>
         <div class="fieldrow">
           <div><label>음성 자막 <span class="hint">(중간 · 음성으로 읽힘)</span></label><textarea data-k="caption" rows="2">${esc(b.caption)}</textarea></div>
-          <button class="ghost mini" data-a="verify" title="이 씬 자막을 원본과 대조해 사실 검토">🔎 검토</button>
+          <button class="ghost mini" data-a="verify" title="이 씬 자막을 원본과 대조해 사실 검토">${ico("search")}검토</button>
         </div>
         ${b._verify ? `<div class="verify-result ${b._verify.ok ? "ok" : "ng"}">
-          <div class="vr-head">${b._verify.ok ? "✓ 사실에 맞음" : "⚠ 어색"}${b._verify.reason ? ` · ${esc(b._verify.reason)}` : ""}</div>
+          <div class="vr-head">${b._verify.ok ? ico("check") + "사실에 맞음" : ico("search") + "어색"}${b._verify.reason ? ` · ${esc(b._verify.reason)}` : ""}</div>
           ${(b._verify.alts || []).map((a, ai) => `<button class="alt" data-a="alt" data-i="${ai}" title="클릭하면 이 문장으로 자막 교체">${esc(a)}</button>`).join("")}
         </div>` : ""}
         <div class="fieldrow">
@@ -254,8 +256,8 @@ async function verifyOne(i, btn) {
     const d = await api("/api/verify", { method: "POST", body: JSON.stringify({ scenes: [{ scene_index: b.scene_index, narration: s.narration || "", caption: b.caption }] }) });
     const v = d[b.scene_index];
     if (v) { b._verify = v; renderBeats(); }   // 결과를 자막 밑에 인라인 표시
-    else { btn.disabled = false; btn.textContent = "🔎 검토"; }
-  } catch (e) { $("aiStatus").textContent = "검토 실패: " + e.message; btn.disabled = false; btn.textContent = "🔎 검토"; }
+    else { btn.disabled = false; btn.innerHTML = ico("search") + "검토"; }
+  } catch (e) { $("aiStatus").textContent = "검토 실패: " + e.message; btn.disabled = false; btn.innerHTML = ico("search") + "검토"; }
 }
 async function verifyContent() {
   if (!STATE.spec.beats.length) return;
@@ -431,18 +433,33 @@ async function loadCampaign() {
     const d = await api("/api/campaign/list");
     CAMP.rows = d.rows || [];
     const p = d.progress || {};
-    $("campProgress").textContent = `${p.produced || 0} / ${p.total || 0} 생산 · 장 ${p.chapters || 0}개`;
+    renderHero(p);
     const chapters = [...new Set(CAMP.rows.map(r => r.chapter))];
     $("campChapter").innerHTML = chapters.map(c => `<option value="${c}">${c}장</option>`).join("");
     $("campFilterChapter").innerHTML = '<option value="">전체</option>' + chapters.map(c => `<option value="${c}">${c}장</option>`).join("");
     const mbtis = [...new Set(CAMP.rows.map(r => r.mbti))];
     $("campFilterMbti").innerHTML = '<option value="">전체</option>' + mbtis.map(m => `<option value="${m}">${m}</option>`).join("");
     renderCampList();
-  } catch (e) { $("campProgress").textContent = "로드 실패: " + e.message; }
+  } catch (e) { $("campStatus").textContent = "로드 실패: " + e.message; }
 }
 function nextUnproducedDay() {
   const r = CAMP.rows.find(x => x.status !== "produced");
   return r ? r.day : null;
+}
+function renderHero(p) {
+  const produced = p.produced || 0, total = p.total || 0;
+  const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
+  set("heroProduced", produced); set("heroChapters", p.chapters || 0); set("heroLinked", p.linked || 0);
+  const pct = total ? produced / total : 0;
+  set("heroPct", Math.round(pct * 100) + "%");
+  set("heroRingSub", `${produced} / ${total}`);
+  const arc = $("ringArc");
+  if (arc) { const C = 2 * Math.PI * 36; arc.style.strokeDasharray = C.toFixed(1); arc.style.strokeDashoffset = (C * (1 - pct)).toFixed(1); }
+  const nx = CAMP.rows.find(x => x.status !== "produced");
+  const hn = $("heroNext");
+  if (hn) hn.innerHTML = nx
+    ? `다음 미생산 · <b>Day ${nx.day}</b> · ${nx.chapter}장 · <b>${nx.mbti}</b>`
+    : "🎉 전체 생산 완료";
 }
 function renderCampList() {
   const fs = $("campFilterStatus").value, fm = $("campFilterMbti").value, fc = $("campFilterChapter").value;
@@ -467,7 +484,7 @@ function renderCampList() {
       <span class="c-yt">
         <input class="ch-yt" value="${esc(r.video_id)}" placeholder="발행 후 URL/ID 붙여넣기">
         ${views}</span>
-      <span class="c-st">${prod ? "✅ 생산" : (today ? "⭐ 오늘" : (hasHook ? "준비됨" : "후크 없음"))}</span>
+      <span class="c-st">${prod ? ico("check") + "생산" : (today ? "오늘" : (hasHook ? "준비됨" : "후크 없음"))}</span>
       <span class="c-act"><button class="ghost mini ch-build"${(!hasHook || prod) ? " disabled" : ""}>구성</button></span>
     </div>`;
   };
@@ -533,10 +550,16 @@ async function loadInsights() {
   try {
     const d = await api("/api/campaign/insights");
     if (!d.samples) { box.innerHTML = '<div class="hint">아직 조회수 데이터가 없습니다. YT칸에 URL을 넣고 [조회수 갱신]을 누르세요.</div>'; return; }
-    const tbl = (title, arr, fmtKey) => `<div class="ins-col"><h4>${title}</h4>` +
-      arr.map((x, i) => `<div class="ins-row"><span class="ins-rank">${i + 1}</span><span class="ins-key">${fmtKey(x.key)}</span><span class="ins-avg">평균 ${x.avg.toLocaleString()}</span><span class="ins-n">n=${x.n}·합 ${x.total.toLocaleString()}</span></div>`).join("") + "</div>";
-    box.innerHTML = `<div class="ins-note">표본 ${d.samples}개의 '최신 조회수' 기준 평균. 어떤 유형/장이 잘 먹히는지.</div>
-      <div class="ins-grid">${tbl("MBTI별 평균 조회수", d.by_mbti, k => k)}${tbl("장별 평균 조회수", d.by_chapter, k => k + "장")}</div>`;
+    // 의존성 0 인라인 SVG(가로 막대) — 평균 조회수 기준 정렬
+    const chart = (title, arr, fmtKey) => {
+      const max = Math.max(1, ...arr.map(x => x.avg));
+      const rows = arr.map(x => `<div class="chart-row"><span class="ck">${esc(fmtKey(x.key))}</span>`
+        + `<span class="cbar"><span style="width:${Math.max(2, Math.round(x.avg / max * 100))}%"></span></span>`
+        + `<span class="cv">${x.avg.toLocaleString()}</span></div>`).join("");
+      return `<div class="ins-col"><h4>${title}</h4>${rows}</div>`;
+    };
+    box.innerHTML = `<div class="ins-note">표본 ${d.samples}개의 '최신 조회수' 기준 평균 — 어떤 유형/장이 잘 먹히는지.</div>
+      <div class="ins-grid">${chart("MBTI별 평균 조회수", d.by_mbti, k => k)}${chart("장별 평균 조회수", d.by_chapter, k => k + "장")}</div>`;
   } catch (e) { box.innerHTML = "인사이트 실패: " + e.message; }
 }
 async function saveHook(chapter, mbti, line1, line2) {

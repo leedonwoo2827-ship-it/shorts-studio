@@ -4,22 +4,49 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>쇼츠공방 — 세로 쇼츠 메이커</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+<!-- 단색 라인 아이콘 스프라이트 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-film" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="7" y1="3" x2="7" y2="21"/><line x1="17" y1="3" x2="17" y2="21"/><line x1="2" y1="9" x2="22" y2="9"/><line x1="2" y1="15" x2="22" y2="15"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/></symbol>
+  <symbol id="i-bars" viewBox="0 0 24 24"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="10"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><line x1="10.85" y1="12.15" x2="19" y2="4"/><line x1="18" y1="5" x2="20.5" y2="7.5"/><line x1="15" y1="8" x2="17.5" y2="10.5"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol>
+  <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-hash" viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+</svg>
+
 <header>
-  <h1>🎬 쇼츠공방 <small>세로 9:16 쇼츠 메이커</small></h1>
+  <h1><svg class="ico"><use href="#i-film"/></svg>쇼츠공방 <small>세로 9:16 쇼츠 메이커</small></h1>
   <nav class="tabs">
-    <button id="tabBtnCampaign" class="tab active">🗓 캠페인</button>
-    <button id="tabBtnMake" class="tab">🎬 제작</button>
+    <button id="tabBtnCampaign" class="tab active"><svg class="ico"><use href="#i-calendar"/></svg>캠페인</button>
+    <button id="tabBtnMake" class="tab"><svg class="ico"><use href="#i-film"/></svg>제작</button>
   </nav>
-  <span id="llmChip" class="chip" style="cursor:pointer" title="LLM 계정 설정">LLM 확인 중…</span>
+  <span id="llmChip" class="chip" style="cursor:pointer" title="LLM 계정 설정"><svg class="ico"><use href="#i-cpu"/></svg>LLM 확인 중…</span>
 </header>
 
 <main>
   <!-- LLM 계정 설정 -->
   <section class="card" id="llmPanel" style="display:none">
-    <h2>⚙ LLM 계정</h2>
+    <h2><svg class="ico"><use href="#i-sliders"/></svg>LLM 계정</h2>
     <div class="row">
       <div><label>공급자</label>
         <select id="llmProvider">
@@ -37,9 +64,9 @@
     </div>
     <div id="llmModelInfo" class="hint">현재 적용: 기본 모델</div>
     <div class="toolbar">
-      <button id="llmLoginBtn" class="ghost">🔑 로그인 (터미널)</button>
-      <button id="llmLogoutBtn" class="ghost">🚪 로그아웃</button>
-      <button id="llmRefreshBtn" class="ghost">↻ 새로고침</button>
+      <button id="llmLoginBtn" class="ghost"><svg class="ico"><use href="#i-key"/></svg>로그인 (터미널)</button>
+      <button id="llmLogoutBtn" class="ghost"><svg class="ico"><use href="#i-logout"/></svg>로그아웃</button>
+      <button id="llmRefreshBtn" class="ghost"><svg class="ico"><use href="#i-refresh"/></svg>새로고침</button>
     </div>
     <p class="hint">로그인하면 새 터미널 창이 열립니다(브라우저 OAuth). 다른 계정으로 바꾸려면 <b>로그아웃 → 로그인</b>.<br>
       상위 모델은 상위 구독에서만 동작할 수 있습니다(미동작 시 기본값으로 자동 폴백).</p>
@@ -52,7 +79,7 @@
     <div class="row">
       <div style="flex:3"><label>번들</label>
         <select id="bundleSel"></select></div>
-      <div><label>&nbsp;</label><button id="refreshBtn" class="ghost">새로고침</button></div>
+      <div><label>&nbsp;</label><button id="refreshBtn" class="ghost"><svg class="ico"><use href="#i-refresh"/></svg>새로고침</button></div>
     </div>
     <div class="row">
       <div><label>경로 직접 입력(선택)</label><input id="bundlePath" type="text" placeholder="D:\...\chNN_bundle"></div>
@@ -84,22 +111,22 @@
           <option value="M5">M5 깊은 남성 (본편 톤)</option>
         </select></div>
       <div><label>&nbsp;</label>
-        <button id="composeBtn">✨ 씬 자동 구성</button></div>
+        <button id="composeBtn"><svg class="ico"><use href="#i-zap"/></svg>씬 자동 구성</button></div>
     </div>
     <p class="hint" id="bundleHint"></p>
   </section>
 
   <!-- 작업 공간: 왼쪽 씬 편집 / 오른쪽 대본·생성·메타 -->
-  <div id="workspace" style="display:none; gap:1rem; align-items:flex-start">
+  <div id="workspace" style="display:none; gap:1.2rem; align-items:flex-start">
     <!-- LEFT: 씬 편집 -->
     <div style="flex:1.15; min-width:0">
       <section class="card" id="editSection">
         <h2>② 씬 구성 · 문구 편집 <small>상단 후크 / 중간 음성 자막 (하단 텍스트·해시태그는 오른쪽 ③)</small></h2>
         <div id="buildBanner" class="build-banner" style="display:none"></div>
         <div class="row" style="margin-bottom:.5rem">
-          <div style="flex:3"><label>💾 보관된 AI 후크 (선택하면 전 씬 적용)</label>
+          <div style="flex:3"><label>보관된 AI 후크 (선택하면 전 씬 적용)</label>
             <select id="hookStore"><option value="">— 후크 보관함 —</option></select></div>
-          <div><label>&nbsp;</label><button id="hookSaveBtn" class="ghost">💾 현재 후크 저장</button></div>
+          <div><label>&nbsp;</label><button id="hookSaveBtn" class="ghost"><svg class="ico"><use href="#i-bookmark"/></svg>현재 후크 저장</button></div>
         </div>
         <div class="row" style="margin-bottom:.7rem">
           <div><label>후크1 글자 크기</label>
@@ -112,25 +139,25 @@
               <option value="0.8">작게</option><option value="1.0" selected>보통</option>
               <option value="1.25">크게</option><option value="1.5">아주 크게</option>
             </select></div>
-          <div><label>후크1 색</label><input id="hookColor1" type="color" value="#111111" style="height:38px;padding:2px"></div>
-          <div><label>후크2 색</label><input id="hookColor2" type="color" value="#F4511E" style="height:38px;padding:2px"></div>
+          <div><label>후크1 색</label><input id="hookColor1" type="color" value="#111111"></div>
+          <div><label>후크2 색</label><input id="hookColor2" type="color" value="#F4511E"></div>
         </div>
         <div id="beats"></div>
         <div class="toolbar">
-          <button id="verifyBtn" class="ghost" title="씬별 사실 정확성 점검 + 대안 (내용 안 바꿈)">🔎 전체 사실검증</button>
-          <button id="aiFillHookBtn" class="ghost">🔁 AI 후크 다시</button>
-          <button id="aiFillCapBtn" class="ghost">🔁 AI 자막 다시</button>
-          <button id="addSceneBtn" class="ghost">＋ 씬 추가</button>
-          <span id="aiStatus" class="hint">↑↓ 순서 · ✕ 삭제 · 자막칸 🔎로 그 씬만 검증</span>
+          <button id="verifyBtn" class="ghost" title="씬별 사실 정확성 점검 + 대안 (내용 안 바꿈)"><svg class="ico"><use href="#i-search"/></svg>전체 사실검증</button>
+          <button id="aiFillHookBtn" class="ghost"><svg class="ico"><use href="#i-refresh"/></svg>AI 후크 다시</button>
+          <button id="aiFillCapBtn" class="ghost"><svg class="ico"><use href="#i-refresh"/></svg>AI 자막 다시</button>
+          <button id="addSceneBtn" class="ghost"><svg class="ico"><use href="#i-plus"/></svg>씬 추가</button>
+          <span id="aiStatus" class="hint">↑↓ 순서 · ✕ 삭제 · 자막칸 검토로 그 씬만 검증</span>
         </div>
         <pre id="verifyOut" class="logs" style="display:none"></pre>
       </section>
     </div>
 
     <!-- RIGHT: 대본 + 생성 + 메타 -->
-    <div style="flex:1; min-width:0; position:sticky; top:64px; max-height:calc(100vh - 80px); overflow:auto">
+    <div style="flex:1; min-width:0; position:sticky; top:80px; max-height:calc(100vh - 96px); overflow:auto">
       <div class="card" id="scriptCard">
-        <div class="hint" style="margin-bottom:.3rem">📜 전체 음성 대본 (= 중간 음성 자막, 말로 읽힘)</div>
+        <div class="hint" style="margin-bottom:.4rem">전체 음성 대본 (= 중간 음성 자막, 말로 읽힘)</div>
         <pre id="scriptView" class="logs" style="max-height:28vh"></pre>
       </div>
 
@@ -143,31 +170,31 @@
         <div class="row">
           <div style="flex:3"><label>하단 텍스트 (해시태그)</label>
             <input id="hashtags" type="text" placeholder="#쇼츠 #세계사"></div>
-          <div><label>&nbsp;</label><button id="hashtagBtn" class="ghost">🔁 해시태그</button></div>
+          <div><label>&nbsp;</label><button id="hashtagBtn" class="ghost"><svg class="ico"><use href="#i-hash"/></svg>해시태그</button></div>
         </div>
         <div class="toolbar">
-          <button id="ttsBtn" class="ghost">🎙️ 음성 싱크 재생성</button>
+          <button id="ttsBtn" class="ghost"><svg class="ico"><use href="#i-mic"/></svg>음성 싱크 재생성</button>
           <span id="ttsStatus" class="hint">자막대로 새 음성 + 롱폼 음소거 배치</span>
         </div>
         <div class="bar" id="ttsBar" style="display:none"><div id="ttsBarFill"></div></div>
         <pre id="ttsLogs" class="logs" style="display:none; max-height:140px"></pre>
         <div class="toolbar" style="margin-top:.6rem">
-          <button id="renderBtn">🎬 쇼츠 생성</button>
+          <button id="renderBtn"><svg class="ico"><use href="#i-play"/></svg>쇼츠 생성</button>
           <span id="renderStatus" class="hint"></span>
         </div>
         <div class="bar" id="bar" style="display:none"><div id="barFill"></div></div>
         <pre id="renderLogs" class="logs" style="display:none"></pre>
         <div id="previewWrap" style="display:none">
           <video id="player" controls></video>
-          <div><a id="dl" href="#" download><button class="ghost">⬇ 다운로드</button></a></div>
+          <div><a id="dl" href="#" download><button class="ghost"><svg class="ico"><use href="#i-download"/></svg>다운로드</button></a></div>
         </div>
       </section>
 
       <section class="card" id="metaSection">
         <h2>④ 유튜브 쇼츠 메타</h2>
         <div class="toolbar">
-          <button id="metaBtn" class="ghost">📺 메타 생성</button>
-          <button id="metaCopyBtn" class="ghost" style="display:none">📋 복사</button>
+          <button id="metaBtn" class="ghost"><svg class="ico"><use href="#i-monitor"/></svg>메타 생성</button>
+          <button id="metaCopyBtn" class="ghost" style="display:none"><svg class="ico"><use href="#i-copy"/></svg>복사</button>
           <span id="metaStatus" class="hint"></span>
         </div>
         <pre id="metaOut" class="logs" style="display:none"></pre>
@@ -178,25 +205,48 @@
 
   <!-- 캠페인 탭 -->
   <div id="tabCampaign" style="display:none">
-    <section class="card" id="campaignPanel">
-      <h2>🗓 MBTI 후크 캠페인 <small>장 × 16유형 = 무중복 일일 스케줄</small></h2>
-      <div class="row">
-        <div><label>시리즈</label><select id="campSeries"></select></div>
-        <div style="flex:2"><label>진행률</label><div id="campProgress" class="hint">—</div></div>
-        <div><label>&nbsp;</label><button id="campJumpBtn" class="ghost">⤵ 다음 미생산으로</button></div>
+    <!-- 히어로: 분할(딥틸 카피 + 실데이터 진행) -->
+    <div class="camp-hero">
+      <div class="hero-l">
+        <div class="hero-eyebrow">MBTI HOOK CAMPAIGN</div>
+        <h2 class="hero-title">장 × 16유형,<br>무중복 일일 스케줄</h2>
+        <p class="hero-sub">한 라운드 = 한 MBTI로 전 장을 한 바퀴. 매일 한 편씩, 같은 (장·유형) 조합은 단 한 번.</p>
+        <div class="hero-stats">
+          <div><div class="hs-num" id="heroProduced">0</div><div class="hs-lab">생산</div></div>
+          <div><div class="hs-num" id="heroChapters">0</div><div class="hs-lab">장</div></div>
+          <div><div class="hs-num" id="heroLinked">0</div><div class="hs-lab">YT 연결</div></div>
+        </div>
       </div>
-      <div class="row">
-        <div><label>장 선택</label><select id="campChapter"></select></div>
-        <div><label>&nbsp;</label><button id="campGenBtn" class="ghost">✨ 16유형 후크 생성</button></div>
-        <div><label>&nbsp;</label><button id="campGenAllBtn" class="ghost">✨ 전체 장 후크 생성</button></div>
-        <div><label>&nbsp;</label><button id="campMoodBtn" class="ghost">🎭 무드 가이드</button></div>
-        <div><label>&nbsp;</label><button id="campViewsBtn" class="ghost">📊 조회수 갱신</button></div>
-        <div><label>&nbsp;</label><button id="campInsightBtn" class="ghost">💡 인사이트</button></div>
-        <div style="flex:2"><label>&nbsp;</label><span id="campStatus" class="hint">행의 [구성]으로 제작 · 발행 후 YT칸에 URL 붙여넣고 조회수 갱신</span></div>
+      <div class="hero-r">
+        <div class="pr-label">진행률</div>
+        <div class="ring-wrap">
+          <svg width="84" height="84" viewBox="0 0 84 84">
+            <circle cx="42" cy="42" r="36" fill="none" stroke="var(--surface-strong)" stroke-width="9"/>
+            <circle id="ringArc" cx="42" cy="42" r="36" fill="none" stroke="var(--brand-teal)" stroke-width="9"
+                    stroke-linecap="round" transform="rotate(-90 42 42)" stroke-dasharray="226" stroke-dashoffset="226"/>
+          </svg>
+          <div><div class="ring-num" id="heroPct">0%</div><div class="ring-sub" id="heroRingSub">0 / 0</div></div>
+        </div>
+        <div class="hero-next" id="heroNext">다음 미생산: —</div>
+        <button id="campJumpBtn" class="ghost"><svg class="ico"><use href="#i-chevron-down"/></svg>다음 미생산으로</button>
+      </div>
+    </div>
+
+    <section class="card" id="campaignPanel">
+      <div class="campbar">
+        <div style="flex:0 0 150px"><label>시리즈</label><select id="campSeries"></select></div>
+        <div style="flex:0 0 90px"><label>장</label><select id="campChapter"></select></div>
+        <button id="campGenBtn" class="ghost"><svg class="ico"><use href="#i-zap"/></svg>16유형 후크 생성</button>
+        <button id="campGenAllBtn" class="ghost"><svg class="ico"><use href="#i-zap"/></svg>전체 장 후크 생성</button>
+        <button id="campMoodBtn" class="ghost"><svg class="ico"><use href="#i-smile"/></svg>무드 가이드</button>
+        <button id="campViewsBtn" class="ghost"><svg class="ico"><use href="#i-bars"/></svg>조회수 갱신</button>
+        <button id="campInsightBtn" class="ghost"><svg class="ico"><use href="#i-trend"/></svg>인사이트</button>
+        <span class="spacer"></span>
+        <span id="campStatus" class="hint">행의 [구성]으로 제작 · 발행 후 YT칸에 URL 붙여넣고 조회수 갱신</span>
       </div>
       <div id="campMoods" class="camp-moods" style="display:none"></div>
       <div id="campInsights" class="camp-insights" style="display:none"></div>
-      <div class="row" style="margin-bottom:.4rem">
+      <div class="row" style="margin-bottom:.6rem">
         <div><label>상태</label><select id="campFilterStatus"><option value="">전체</option><option value="planned">예정</option><option value="produced">생산</option></select></div>
         <div><label>MBTI</label><select id="campFilterMbti"><option value="">전체</option></select></div>
         <div><label>장</label><select id="campFilterChapter"><option value="">전체</option></select></div>
