@@ -147,9 +147,10 @@ button.mini{height:32px;padding:0 .7rem;font-size:.78rem}
 .campbar .spacer{flex:1}
 .camp-head,.camp-row{display:grid;grid-template-columns:46px 1.3fr 58px 2.4fr 1.5fr 84px 64px;gap:.6rem;align-items:center}
 .camp-head{padding:.5rem .7rem;font-size:.72rem;color:var(--muted);font-weight:600;letter-spacing:.02em;text-transform:uppercase;border-bottom:1px solid var(--hairline)}
-.camp-list{position:relative;border:1px solid var(--hairline);border-radius:var(--r-lg);background:var(--white);overflow:hidden}
+.camp-list{position:relative;border:1px solid var(--hairline);border-radius:var(--r-lg);background:var(--white)}
 .camp-group{position:sticky;top:64px;z-index:2;display:flex;align-items:center;gap:.55rem;
   background:var(--surface-strong);border-bottom:1px solid var(--hairline);padding:.5rem .8rem;font-size:.84rem;color:var(--body-strong)}
+.camp-row{scroll-margin-top:116px}   /* sticky 헤더(앱64+그룹) 높이만큼 여백 → 가려짐 방지 */
 .camp-group .cg-mbti{font-weight:700;color:var(--accent);letter-spacing:.02em}
 .camp-group small{color:var(--muted);font-weight:400}
 .camp-group .cg-prog{margin-left:auto;color:var(--muted);font-size:.76rem;font-weight:500}

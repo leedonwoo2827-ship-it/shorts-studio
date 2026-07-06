@@ -518,9 +518,9 @@ function renderCampList() {
     dt.onchange = () => savePubDate(ch, mbti, dt.value);
     build.onclick = () => applyAssignment(ch, mbti, l1.value, l2.value, mood);
   });
-  // '다음 미생산' 위치로 자동 이동(1~17 생산되면 18번이 화면에). 단일 스크롤(페이지).
+  // '다음 미생산' 행을 sticky 헤더 바로 아래(상단 정렬)로 이동 → 1장이 안 가려짐. scroll-margin-top 반영.
   const t = $("campList").querySelector(".camp-row.today");
-  if (t) { const g = t.previousElementSibling; (g && g.classList.contains("camp-group") ? g : t).scrollIntoView({ block: "center" }); }
+  if (t) t.scrollIntoView({ block: "start" });
 }
 async function savePubDate(chapter, mbti, date) {
   try {
