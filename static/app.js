@@ -455,11 +455,6 @@ function renderHero(p) {
   set("heroRingSub", `${produced} / ${total}`);
   const arc = $("ringArc");
   if (arc) { const C = 2 * Math.PI * 36; arc.style.strokeDasharray = C.toFixed(1); arc.style.strokeDashoffset = (C * (1 - pct)).toFixed(1); }
-  const nx = CAMP.rows.find(x => x.status !== "produced");
-  const hn = $("heroNext");
-  if (hn) hn.innerHTML = nx
-    ? `다음 미생산 · <b>Day ${nx.day}</b> · ${nx.chapter}장 · <b>${nx.mbti}</b>`
-    : "🎉 전체 생산 완료";
 }
 function renderCampList() {
   const fs = $("campFilterStatus").value, fm = $("campFilterMbti").value, fc = $("campFilterChapter").value;

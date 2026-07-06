@@ -4,8 +4,11 @@
 씬마다 **상단 후크 / 중간 음성 자막 / 하단 해시태그**를 편집하고, AI로 문구를 뽑고
 사실을 검증한 뒤, 한 번에 9:16 영상으로 합성한다.
 
-> 화면: 상단 흰 띠(2색 후크 + 플레이어 아이콘) · 중간 영상/이미지(켄번스) · 하단 흰 띠(해시태그 2줄).
-> 마지막 씬엔 "전체 영상 보기" CTA. 캔버스 크기는 설정값이라 가로(16:9)로도 확장 가능.
+> 화면: 상단 흰 띠(2색 후크 + 플레이어 아이콘) · 중간 영상/이미지(켄번스) · 하단 흰 띠(해시태그).
+> 마지막 씬엔 "전체 영상 보기" CTA.
+>
+> **캠페인 기능**: 장 × MBTI 16유형으로 무중복 일일 스케줄 → 매일 한 편씩 발행 → 조회수 인사이트.
+> 자세히는 [docs/CAMPAIGN.md](docs/CAMPAIGN.md).
 
 > **준비물 요약**:
 > - **ffmpeg** — 영상 합성 필수
@@ -70,18 +73,32 @@ run.bat            :: 서버 실행 → 브라우저가 http://127.0.0.1:7010 �
 |---|---|
 | `SHORTS_VODSTUDIO_DIR` | **영상공방 프로젝트 경로**(LLM·TTS 백엔드 위치). AI/음성 기능 안 쓰면 비워도 됨 |
 | `LLM_PROVIDER` | `codex`(ChatGPT 로그인) 또는 `agy`(Antigravity/Gemini 로그인) |
-| `SHORTS_BUNDLE_ROOTS` | 번들(chNN_bundle)을 찾을 폴더들. 세미콜론(;)으로 여러 개 |
+| `SHORTS_SERIES_ROOT` | **(권장)** 시리즈별 `input/output`을 담는 한 폴더. 설정되면 이게 우선 |
+| `SHORTS_BUNDLE_ROOTS` | (레거시) 시리즈 루트를 안 쓸 때 번들을 찾을 폴더들. 세미콜론(;)으로 여러 개 |
+| `YOUTUBE_API_KEY` | (선택) 조회수 수집용 YouTube Data API v3 키. [docs/YOUTUBE_API.md](docs/YOUTUBE_API.md) |
 
 예시:
 ```
 SHORTS_VODSTUDIO_DIR=C:\work\vodstudio
 LLM_PROVIDER=codex
-SHORTS_BUNDLE_ROOTS=C:\work\bundles\_assets;C:\work\vodstudio\data
+SHORTS_SERIES_ROOT=D:\00work\_series
 ```
+
+### 시리즈 폴더 배치 (이렇게 두면 자동 인식)
+```
+<SHORTS_SERIES_ROOT>\<시리즈>\input\   ch01_bundle\ · ch02_bundle\ · …   (각 폴더에 script\ + images\)
+<SHORTS_SERIES_ROOT>\<시리즈>\output\  (렌더 결과 자동 저장, 비워둠)
+```
+- `input` 안에 **`chNN_bundle`**(2자리, 예 `ch01_bundle`)만 넣으면 그 시리즈 번들로 인식.
+- 활성 시리즈는 캠페인 탭 상단 **시리즈 드롭다운**에서 전환.
+- 자세한 인식 규칙·새 시리즈 추가법 → **[docs/SERIES.md](docs/SERIES.md)**.
 
 ---
 
 ## 3. 사용법 (워크플로우)
+
+> **두 개의 탭**: **캠페인**(장×MBTI 후크 기획·일일 스케줄·조회수 인사이트) / **제작**(번들→씬 편집→9:16 렌더).
+> 캠페인 탭에서 행의 **[구성]** 을 누르면 그 장·MBTI가 제작 탭으로 넘어옵니다. 캠페인 전체 흐름은 [docs/CAMPAIGN.md](docs/CAMPAIGN.md).
 
 ### ① 번들 선택
 - 드롭다운에서 번들을 고르거나 폴더 경로를 직접 입력.
@@ -90,15 +107,10 @@ SHORTS_BUNDLE_ROOTS=C:\work\bundles\_assets;C:\work\vodstudio\data
   채운 뒤 **전체 검토까지 자동 실행**해 각 자막 밑에 근거를 깔아줍니다.
 
 ### ② 씬 구성 · 문구 편집 (왼쪽)
-- **상단 후크**: 1줄=검정, **Enter 후 2줄=주황**. (후크1/2 글자 크기·색 따로 조절)
-- **음성 자막**(중간, 말로 읽힘): 이게 곧 **음성 대본**. 여기 문장이 그대로 음성이 됩니다.
-- **`🔎 검토`**(자막칸): 그 씬만 원본과 대조해 사실 점검 → 밑에 평가 + **대안 문장**(클릭하면 교체).
-- 버튼:
-  - `🔁 AI 후크 다시` / `🔁 AI 자막 다시` — 새로 생성(내용 바뀜)
-  - `✅ 흐름 검토` — 전체 이야기 흐름·연결·중복 평가만(**내용 안 바뀜**)
-  - `🔎 전체 사실검증` — 모든 씬 사실 점검, 근거+대안 인라인(**대안 클릭해야 바뀜**)
-  - `＋ 씬 추가`, `↑↓` 순서, `✕` 삭제, `💾` 후크 보관함
-- 오른쪽 **📜 전체 음성 대본**에서 전체 흐름을 한눈에 보며 다듬기.
+- **상단 후크**: 1줄=검정, **Enter 후 2줄=주황**. **음성 자막**(중간)이 곧 **음성 대본**(그대로 읽힘).
+- **검토**(자막칸): 그 씬을 원본과 대조해 사실 점검 → 대안 문장(클릭하면 교체).
+- **AI 후크/자막 다시**로 재생성, **전체 사실검증**으로 일괄 점검, **씬 추가**·순서·삭제.
+- 오른쪽 **전체 음성 대본**에서 흐름을 보며 다듬기.
 
 ### ③ 쇼츠 생성 (오른쪽)
 - **원본 영상 URL**(CTA·메타용), **하단 텍스트(해시태그)** 입력.
@@ -118,13 +130,11 @@ SHORTS_BUNDLE_ROOTS=C:\work\bundles\_assets;C:\work\vodstudio\data
 쇼츠공방의 입력은 **번들 폴더**(`chNN_bundle`)입니다. 보통 영상공방이 만들어 주며, 직접 만들 수도 있습니다.
 ```
 chNN_bundle/
-  script/chNN_script.json      ← 장면 목록(제목·내레이션·scene_type 등)
-  images/chNN_XX_*.png|jpeg     ← 장면 이미지
-  audio/chNN_XX_narration.wav   ← 장면 음성(있으면 사용, 없으면 무음/이미지)
-  subtitles/chNN_XX_narration.srt
-  draft/chNN_final_nosub.mp4     ← (선택) 자막 없는 롱폼이면 영상 배경으로 사용
+  script/chNN_script.json      ← 장면 목록(제목·내레이션 등) — 필수
+  images/chNN_XX_*.png|jpeg     ← 장면 이미지 — 필수
+  subtitles/ audio/ draft/      ← 모두 선택(없어도 됨. 쇼츠는 자막으로 TTS 새로 생성)
 ```
-자세한 스키마는 [docs/BUNDLE-FORMAT.md](docs/BUNDLE-FORMAT.md).
+**필수는 `script` + `images` 뿐**. 자세한 스키마는 [docs/BUNDLE-FORMAT.md](docs/BUNDLE-FORMAT.md).
 
 ---
 

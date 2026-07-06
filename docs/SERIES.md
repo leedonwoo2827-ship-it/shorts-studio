@@ -21,6 +21,20 @@
 | `baeum` | `D:\00work\_series\baeum\input` | 활성 |
 | `worldhistory` | `D:\00work\_series\worldhistory\input` | 보관(세계사) |
 
+## 폴더 배치 & 인식 규칙
+```
+<SHORTS_SERIES_ROOT>\
+   ├─ <시리즈>\
+   │   ├─ input\   ch01_bundle\(script\ + images\ [+ subtitles\]) · ch02_bundle\ · …
+   │   └─ output\  (렌더 결과 자동 저장, 비워둠)
+   └─ …
+```
+- `SHORTS_SERIES_ROOT`가 설정되면 **이게 우선**(레거시 `SHORTS_BUNDLE_ROOTS`는 무시).
+- 번들 드롭다운엔 **활성 시리즈의 `input`** 안 `chNN_bundle`만 표시.
+- **활성 시리즈** = `data/active_series.txt`. 캠페인 탭 상단 **시리즈 드롭다운**에서 전환(파일 자동 갱신).
+- 폴더명은 반드시 **`chNN_bundle`**(2자리, 예 `ch01_bundle`). `01장-<hash>` 같은 편집 세션 폴더는 **인식 안 됨**.
+- 각 번들은 **`script/chNN_script.json` + `images/`만 있으면 인식**(오디오·자막·영상 선택).
+
 ## 새 시리즈 추가 시
 1. `D:\00work\_series\<새시리즈>\{input,output}` 폴더 생성
 2. `<새시리즈>\input`에 `chNN_bundle` 배치(`script`+`images`)
