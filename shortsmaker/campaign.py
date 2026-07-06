@@ -275,7 +275,7 @@ def master_list() -> List[dict]:
         hooks = {(r["chapter"], r["mbti"]): r for r in cx.execute(
             "SELECT chapter,mbti,line1,line2,edited FROM hook WHERE campaign_id=?", (camp["id"],))}
         slots = {(r["chapter"], r["mbti"]): r for r in cx.execute(
-            "SELECT chapter,mbti,status,video_path,youtube_video_id FROM slot WHERE campaign_id=?", (camp["id"],))}
+            "SELECT chapter,mbti,status,video_path,youtube_video_id,date FROM slot WHERE campaign_id=?", (camp["id"],))}
         latest = {(r["chapter"], r["mbti"]): r["view_count"] for r in cx.execute(
             "SELECT s.chapter,s.mbti,v.view_count FROM slot s JOIN view_stat v ON v.slot_id=s.id "
             "WHERE s.campaign_id=? AND v.id=(SELECT id FROM view_stat v2 WHERE v2.slot_id=s.id "
@@ -295,6 +295,7 @@ def master_list() -> List[dict]:
             "status": (sl["status"] if sl else "planned"),
             "video_path": (sl["video_path"] if sl else ""),
             "video_id": (sl["youtube_video_id"] if sl else "") or "",
+            "pub_date": (sl["date"] if sl else "") or "",
             "views": latest.get(key),
         })
     return out
@@ -338,15 +339,29 @@ def progress() -> dict:
 
 # ── 조회수 연동 (Phase 3) ─────────────────────────────────────────────────────
 def set_video(chapter: int, mbti: str, video: str) -> dict:
-    """발행한 쇼츠의 URL/ID 를 (장,MBTI) 셀에 연결. slot 이 없으면 생성."""
+    """발행한 쇼츠의 URL/ID 를 (장,MBTI) 셀에 연결. 영상 연결 = 이미 발행됨 → 생산 처리."""
     camp = ensure_campaign()
     vid = _youtube.extract_id(video) or (video or "").strip()
+    status = "produced" if vid else "planned"
     with _conn() as cx:
         cx.execute(
-            "INSERT INTO slot(campaign_id,chapter,mbti,youtube_video_id) VALUES(?,?,?,?) "
-            "ON CONFLICT(campaign_id,chapter,mbti) DO UPDATE SET youtube_video_id=excluded.youtube_video_id",
-            (camp["id"], chapter, mbti.upper(), vid))
-    return {"ok": True, "video_id": vid}
+            "INSERT INTO slot(campaign_id,chapter,mbti,youtube_video_id,status) VALUES(?,?,?,?,?) "
+            "ON CONFLICT(campaign_id,chapter,mbti) DO UPDATE SET youtube_video_id=excluded.youtube_video_id, "
+            "status=CASE WHEN excluded.youtube_video_id!='' THEN 'produced' ELSE slot.status END",
+            (camp["id"], chapter, mbti.upper(), vid, status))
+    return {"ok": True, "video_id": vid, "status": status}
+
+
+def set_pubdate(chapter: int, mbti: str, date: str) -> dict:
+    """예약 발행일(메모) 저장. slot 이 없으면 생성."""
+    camp = ensure_campaign()
+    date = (date or "").strip()
+    with _conn() as cx:
+        cx.execute(
+            "INSERT INTO slot(campaign_id,chapter,mbti,date) VALUES(?,?,?,?) "
+            "ON CONFLICT(campaign_id,chapter,mbti) DO UPDATE SET date=excluded.date",
+            (camp["id"], chapter, mbti.upper(), date))
+    return {"ok": True, "date": date}
 
 
 def refresh_views() -> dict:

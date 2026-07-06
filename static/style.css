@@ -147,8 +147,8 @@ button.mini{height:32px;padding:0 .7rem;font-size:.78rem}
 .campbar .spacer{flex:1}
 .camp-head,.camp-row{display:grid;grid-template-columns:46px 1.3fr 58px 2.4fr 1.5fr 84px 64px;gap:.6rem;align-items:center}
 .camp-head{padding:.5rem .7rem;font-size:.72rem;color:var(--muted);font-weight:600;letter-spacing:.02em;text-transform:uppercase;border-bottom:1px solid var(--hairline)}
-.camp-list{position:relative;max-height:62vh;overflow:auto;border:1px solid var(--hairline);border-radius:var(--r-lg);background:var(--white)}
-.camp-group{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:.55rem;
+.camp-list{position:relative;border:1px solid var(--hairline);border-radius:var(--r-lg);background:var(--white);overflow:hidden}
+.camp-group{position:sticky;top:64px;z-index:2;display:flex;align-items:center;gap:.55rem;
   background:var(--surface-strong);border-bottom:1px solid var(--hairline);padding:.5rem .8rem;font-size:.84rem;color:var(--body-strong)}
 .camp-group .cg-mbti{font-weight:700;color:var(--accent);letter-spacing:.02em}
 .camp-group small{color:var(--muted);font-weight:400}
@@ -165,8 +165,11 @@ button.mini{height:32px;padding:0 .7rem;font-size:.78rem}
 .camp-row .c-act .mini{width:100%}
 .camp-row .ch-build[disabled]{opacity:.4;cursor:not-allowed}
 .camp-row .c-yt{display:flex;flex-direction:column;gap:.25rem}
-.camp-row .c-yt input{height:32px;padding:.3rem .45rem;font-size:.76rem}
+.camp-row .c-yt input{height:30px;padding:.28rem .45rem;font-size:.75rem}
+.camp-row .c-yt .ch-date{color:var(--muted);font-size:.72rem}
 .camp-row .c-yt .yt-views{color:var(--brand-coral);font-size:.8rem;font-weight:600}
+.camp-row.done .c-yt .ch-date{background:var(--white);color:var(--ink);border-color:#34534f}
+.camp-row.done .c-hook input{background:var(--white);color:var(--ink);border-color:#34534f}
 /* 행 3상태: 후크없음=크림 / 준비됨=오크르 톤 / 생산=딥틸 */
 .camp-row.empty{background:var(--white)}
 .camp-row.ready{background:var(--warning-soft)}

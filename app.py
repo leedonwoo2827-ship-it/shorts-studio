@@ -357,6 +357,17 @@ async def campaign_video(req: VideoReq):
     return await asyncio.to_thread(campaign.set_video, req.chapter, req.mbti, req.video)
 
 
+class PubDateReq(BaseModel):
+    chapter: int
+    mbti: str
+    date: str = ""
+
+
+@app.post("/api/campaign/pubdate")
+async def campaign_pubdate(req: PubDateReq):
+    return await asyncio.to_thread(campaign.set_pubdate, req.chapter, req.mbti, req.date)
+
+
 @app.post("/api/campaign/views/refresh")
 async def campaign_views_refresh():
     try:

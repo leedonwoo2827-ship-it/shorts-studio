@@ -469,19 +469,20 @@ function renderCampList() {
   const N = CAMP.rows.length ? Math.round(CAMP.rows.length / 16) : 17;   // 장 수(=리스트당 글 수)
   const rowHtml = (r) => {
     const today = r.day === nd ? " today" : "";
-    const prod = r.status === "produced";
+    const prod = r.status === "produced" || !!r.video_id;   // 영상 연결=발행됨=생산
     const hasHook = !!(r.line1 && r.line1.trim());
-    const state = prod ? "done" : (hasHook ? "ready" : "empty");   // 흰/노랑/네이비
+    const state = prod ? "done" : (hasHook ? "ready" : "empty");   // 크림/오크르/딥틸
     const views = (r.views != null) ? `<b class="yt-views">▶ ${r.views.toLocaleString()}</b>` : "";
-    const dis = prod ? " disabled" : "";
+    // 후크는 항상 편집·저장 가능(최종 문구 확정). [구성]만 잠금.
     return `<div class="camp-row ${state}${today}" data-ch="${r.chapter}" data-mbti="${r.mbti}" data-mood="${esc(r.mood || "")}">
       <span class="c-day">${r.day}</span>
       <span class="c-ch">${r.chapter}장<small>${esc(r.title || "")}</small></span>
       <span class="c-mbti">${r.mbti}</span>
       <span class="c-hook">
-        <input class="ch-l1" value="${esc(r.line1)}" placeholder="1줄(검정)"${dis}>
-        <input class="ch-l2" value="${esc(r.line2)}" placeholder="2줄(주황)"${dis}></span>
+        <input class="ch-l1" value="${esc(r.line1)}" placeholder="1줄(검정)">
+        <input class="ch-l2" value="${esc(r.line2)}" placeholder="2줄(주황)"></span>
       <span class="c-yt">
+        <input class="ch-date" type="date" value="${esc(r.pub_date)}" title="예약 발행일(메모)">
         <input class="ch-yt" value="${esc(r.video_id)}" placeholder="발행 후 URL/ID 붙여넣기">
         ${views}</span>
       <span class="c-st">${prod ? ico("check") + "생산" : (today ? "오늘" : (hasHook ? "준비됨" : "후크 없음"))}</span>
@@ -504,33 +505,39 @@ function renderCampList() {
   $("campList").innerHTML = html || '<div class="hint" style="padding:1rem">표시할 행이 없습니다. 후크 생성 또는 필터를 확인하세요.</div>';
   $("campList").querySelectorAll(".camp-row").forEach(row => {
     const ch = +row.dataset.ch, mbti = row.dataset.mbti, mood = row.dataset.mood;
-    const l1 = row.querySelector(".ch-l1"), l2 = row.querySelector(".ch-l2"), yt = row.querySelector(".ch-yt");
+    const l1 = row.querySelector(".ch-l1"), l2 = row.querySelector(".ch-l2");
+    const yt = row.querySelector(".ch-yt"), dt = row.querySelector(".ch-date");
     const build = row.querySelector(".ch-build");
     const prod = row.classList.contains("done");
-    const save = () => {
+    const save = () => {                                 // 후크 저장(항상 가능)
       saveHook(ch, mbti, l1.value, l2.value);
       const has = !!l1.value.trim();
-      build.disabled = prod || !has;                    // 후크 입력되면 구성 활성
-      row.classList.toggle("ready", !prod && has);
-      row.classList.toggle("empty", !prod && !has);
+      if (!prod) { build.disabled = !has; row.classList.toggle("ready", has); row.classList.toggle("empty", !has); }
     };
     l1.onchange = save; l2.onchange = save;
     yt.onchange = () => saveVideo(ch, mbti, yt.value);
+    dt.onchange = () => savePubDate(ch, mbti, dt.value);
     build.onclick = () => applyAssignment(ch, mbti, l1.value, l2.value, mood);
   });
-  // 첫 화면을 '다음 미생산' 위치로 자동 이동(예: 1~17 생산되면 18번이 맨 위). 클릭으로 찾을 필요 X.
+  // '다음 미생산' 위치로 자동 이동(1~17 생산되면 18번이 화면에). 단일 스크롤(페이지).
   const t = $("campList").querySelector(".camp-row.today");
-  if (t) {
-    const grp = t.previousElementSibling;   // 그 줄의 라운드 헤더가 있으면 헤더부터 보이게
-    $("campList").scrollTop = Math.max(0, (grp && grp.classList.contains("camp-group") ? grp : t).offsetTop - 6);
-  }
+  if (t) { const g = t.previousElementSibling; (g && g.classList.contains("camp-group") ? g : t).scrollIntoView({ block: "center" }); }
+}
+async function savePubDate(chapter, mbti, date) {
+  try {
+    await api("/api/campaign/pubdate", { method: "POST", body: JSON.stringify({ chapter, mbti, date }) });
+    const r = CAMP.rows.find(x => x.chapter === chapter && x.mbti === mbti);
+    if (r) r.pub_date = date;
+    $("campStatus").textContent = `${chapter}장 ${mbti} 발행일 저장 (${date || "—"})`;
+  } catch (e) { $("campStatus").textContent = "발행일 저장 실패: " + e.message; }
 }
 async function saveVideo(chapter, mbti, video) {
   try {
     const d = await api("/api/campaign/video", { method: "POST", body: JSON.stringify({ chapter, mbti, video }) });
     const r = CAMP.rows.find(x => x.chapter === chapter && x.mbti === mbti);
-    if (r) r.video_id = d.video_id || "";
-    $("campStatus").textContent = `✓ ${chapter}장 ${mbti} 영상 연결 (${d.video_id || "—"})`;
+    if (r) { r.video_id = d.video_id || ""; if (d.video_id) r.status = "produced"; }
+    renderCampList();   // 영상 연결 시 그 행을 '생산(잠금)' 상태로 갱신
+    $("campStatus").textContent = `${chapter}장 ${mbti} 영상 연결 (${d.video_id || "—"})`;
   } catch (e) { $("campStatus").textContent = "영상 연결 실패: " + e.message; }
 }
 async function refreshViews() {
