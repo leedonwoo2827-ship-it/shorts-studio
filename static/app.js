@@ -483,9 +483,8 @@ function renderCampList() {
         <input class="ch-l2" value="${esc(r.line2)}" placeholder="2줄(주황)"></span>
       <span class="c-yt">
         <input class="ch-date" type="date" value="${esc(r.pub_date)}" title="예약 발행일(메모)">
-        <input class="ch-yt" value="${esc(r.video_id)}" placeholder="발행 후 URL/ID 붙여넣기">
-        ${views}</span>
-      <span class="c-st">${prod ? ico("check") + "생산" : (today ? "오늘" : (hasHook ? "준비됨" : "후크 없음"))}</span>
+        <input class="ch-yt" value="${esc(r.video_id)}" placeholder="발행 후 URL/ID 붙여넣기"></span>
+      <span class="c-st"><span class="st-lab">${prod ? ico("check") + "생산" : (today ? "오늘" : (hasHook ? "준비됨" : "후크 없음"))}</span>${views}</span>
       <span class="c-act"><button class="ghost mini ch-build"${(!hasHook || prod) ? " disabled" : ""}>구성</button></span>
     </div>`;
   };

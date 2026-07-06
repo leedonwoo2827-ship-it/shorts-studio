@@ -161,13 +161,14 @@ button.mini{height:32px;padding:0 .7rem;font-size:.78rem}
 .camp-row .c-mbti{font-weight:700;color:var(--accent)}
 .camp-row .c-hook{display:flex;flex-direction:column;gap:.3rem}
 .camp-row .c-hook input{height:34px;padding:.3rem .5rem;font-size:.82rem}
-.camp-row .c-st{font-size:.78rem;color:var(--muted);display:inline-flex;align-items:center;gap:.3rem}
+.camp-row .c-st{font-size:.78rem;color:var(--muted);display:flex;flex-direction:column;align-items:flex-start;gap:.2rem}
+.camp-row .c-st .st-lab{display:inline-flex;align-items:center;gap:.3rem}
 .camp-row .c-act .mini{width:100%}
 .camp-row .ch-build[disabled]{opacity:.4;cursor:not-allowed}
 .camp-row .c-yt{display:flex;flex-direction:column;gap:.25rem}
 .camp-row .c-yt input{height:30px;padding:.28rem .45rem;font-size:.75rem}
 .camp-row .c-yt .ch-date{color:var(--muted);font-size:.72rem}
-.camp-row .c-yt .yt-views{color:var(--brand-coral);font-size:.8rem;font-weight:600}
+.camp-row .yt-views{color:var(--brand-coral);font-size:.82rem;font-weight:700}
 .camp-row.done .c-yt .ch-date{background:var(--white);color:var(--ink);border-color:#34534f}
 .camp-row.done .c-hook input{background:var(--white);color:var(--ink);border-color:#34534f}
 /* 행 3상태: 후크없음=크림 / 준비됨=오크르 톤 / 생산=딥틸 */
