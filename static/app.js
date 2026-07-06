@@ -432,8 +432,7 @@ async function loadCampaign() {
   try {
     const d = await api("/api/campaign/list");
     CAMP.rows = d.rows || [];
-    const p = d.progress || {};
-    renderHero(p);
+    renderHero();
     const chapters = [...new Set(CAMP.rows.map(r => r.chapter))];
     $("campChapter").innerHTML = chapters.map(c => `<option value="${c}">${c}장</option>`).join("");
     $("campFilterChapter").innerHTML = '<option value="">전체</option>' + chapters.map(c => `<option value="${c}">${c}장</option>`).join("");
@@ -446,11 +445,16 @@ function nextUnproducedDay() {
   const r = CAMP.rows.find(x => x.status !== "produced");
   return r ? r.day : null;
 }
-function renderHero(p) {
-  const produced = p.produced || 0, total = p.total || 0;
+function renderHero() {
+  // CAMP.rows 에서 실시간 계산: 생산=발행일 기재 수, YT연결=영상 연결 수 (입력 즉시 반영)
+  const rows = CAMP.rows || [];
+  const total = rows.length;
+  const produced = rows.filter(r => r.pub_date && String(r.pub_date).trim()).length;
+  const linked = rows.filter(r => r.video_id && String(r.video_id).trim()).length;
+  const chapters = new Set(rows.map(r => r.chapter)).size;
   const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
-  set("heroProduced", produced); set("heroChapters", p.chapters || 0); set("heroLinked", p.linked || 0);
-  const pct = total ? produced / total : 0;
+  set("heroProduced", produced); set("heroChapters", chapters); set("heroLinked", linked);
+  const pct = total ? produced / total : 0;                 // 도넛 분자 = 생산(발행일 기재 수)
   set("heroPct", Math.round(pct * 100) + "%");
   set("heroRingSub", `${produced} / ${total}`);
   const arc = $("ringArc");
@@ -522,6 +526,7 @@ async function savePubDate(chapter, mbti, date) {
     await api("/api/campaign/pubdate", { method: "POST", body: JSON.stringify({ chapter, mbti, date }) });
     const r = CAMP.rows.find(x => x.chapter === chapter && x.mbti === mbti);
     if (r) r.pub_date = date;
+    renderHero();   // 발행일 기재 → '생산' 숫자·도넛 즉시 반영
     $("campStatus").textContent = `${chapter}장 ${mbti} 발행일 저장 (${date || "—"})`;
   } catch (e) { $("campStatus").textContent = "발행일 저장 실패: " + e.message; }
 }
@@ -530,7 +535,7 @@ async function saveVideo(chapter, mbti, video) {
     const d = await api("/api/campaign/video", { method: "POST", body: JSON.stringify({ chapter, mbti, video }) });
     const r = CAMP.rows.find(x => x.chapter === chapter && x.mbti === mbti);
     if (r) { r.video_id = d.video_id || ""; if (d.video_id) r.status = "produced"; }
-    renderCampList();   // 영상 연결 시 그 행을 '생산(잠금)' 상태로 갱신
+    renderCampList(); renderHero();   // 영상 연결 → 행 잠금 + 'YT 연결' 숫자 즉시 반영
     $("campStatus").textContent = `${chapter}장 ${mbti} 영상 연결 (${d.video_id || "—"})`;
   } catch (e) { $("campStatus").textContent = "영상 연결 실패: " + e.message; }
 }
