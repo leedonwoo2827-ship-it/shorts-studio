@@ -125,22 +125,21 @@ button.mini{height:32px;padding:0 .7rem;font-size:.78rem}
   color:var(--body-strong);border-radius:var(--r-sm);padding:.45rem .6rem;margin-top:.35rem;font-size:.84rem;font-weight:400;cursor:pointer;height:auto}
 .verify-result .alt:hover{border-color:var(--accent);background:var(--surface-card)}
 
-/* ── 캠페인 히어로 ─────────────────────────────────────────────── */
-.camp-hero{display:grid;grid-template-columns:1.4fr 1fr;gap:1.5rem;align-items:stretch;margin-bottom:1.5rem}
-.camp-hero .hero-l{background:var(--brand-teal);color:var(--on-dark);border-radius:var(--r-xl);padding:2rem 2.2rem;display:flex;flex-direction:column}
-.camp-hero .hero-eyebrow{font-size:.72rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-mint);margin-bottom:.7rem}
-.camp-hero .hero-title{font-size:2rem;line-height:1.08;letter-spacing:-.03em;font-weight:600;margin:0 0 .6rem}
-.camp-hero .hero-sub{color:#cfe0db;font-size:.9rem;margin-bottom:1.4rem;max-width:34ch}
-.camp-hero .hero-stats{display:flex;gap:1.8rem;margin-top:auto}
-.camp-hero .hs-num{font-size:1.7rem;font-weight:600;letter-spacing:-.02em}
-.camp-hero .hs-lab{font-size:.72rem;color:#9fb8b2;margin-top:.1rem}
-.camp-hero .hero-r{background:var(--surface-card);border:1px solid var(--hairline);border-radius:var(--r-xl);padding:1.4rem 1.5rem;display:flex;flex-direction:column;gap:.8rem}
-.camp-hero .hero-r .pr-label{font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.ring-wrap{display:flex;align-items:center;gap:1.1rem}
-.ring-wrap .ring-num{font-size:1.5rem;font-weight:600;color:var(--ink);letter-spacing:-.02em}
-.ring-wrap .ring-sub{font-size:.76rem;color:var(--muted)}
-.hero-next{margin-top:auto;background:var(--white);border:1px solid var(--hairline);border-radius:var(--r-md);padding:.7rem .85rem;font-size:.82rem}
-.hero-next b{color:var(--accent)}
+/* ── 캠페인 히어로 (한 줄 컴팩트) ──────────────────────────────── */
+.camp-hero{display:flex;align-items:center;gap:2rem;flex-wrap:wrap;
+  background:var(--brand-teal);color:var(--on-dark);border-radius:var(--r-xl);padding:1.1rem 1.6rem;margin-bottom:1.4rem}
+.camp-hero .h-title{flex:1;min-width:200px}
+.camp-hero .hero-eyebrow{font-size:.68rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-mint);margin-bottom:.25rem}
+.camp-hero .hero-title{font-size:1.4rem;line-height:1.1;letter-spacing:-.02em;font-weight:600;margin:0}
+.camp-hero .h-stats{display:flex;gap:1.6rem}
+.camp-hero .hs-num{font-size:1.5rem;font-weight:600;letter-spacing:-.02em;line-height:1}
+.camp-hero .hs-lab{font-size:.7rem;color:#9fb8b2;margin-top:.25rem}
+.camp-hero .h-ring{display:flex;align-items:center;gap:.7rem}
+.camp-hero .ring-num{font-size:1.4rem;font-weight:600;color:var(--on-dark);letter-spacing:-.02em;line-height:1}
+.camp-hero .ring-sub{font-size:.72rem;color:#9fb8b2;margin-top:.2rem}
+.camp-hero .h-next{min-width:200px}
+.camp-hero .hero-next{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:var(--r-md);padding:.6rem .8rem;font-size:.82rem;color:#dfeae6}
+.camp-hero .hero-next b{color:var(--brand-mint)}
 
 /* ── 캠페인 컨트롤 / 마스터 리스트 ─────────────────────────────── */
 .campbar{display:flex;flex-wrap:wrap;gap:.55rem;align-items:center;margin-bottom:1rem}

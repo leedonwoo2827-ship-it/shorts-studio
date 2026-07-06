@@ -709,7 +709,6 @@ $("campGenAllBtn").onclick = genAllChapterHooks;
 $("campMoodBtn").onclick = loadMoods;
 $("campViewsBtn").onclick = refreshViews;
 $("campInsightBtn").onclick = loadInsights;
-$("campJumpBtn").onclick = () => { const nd = nextUnproducedDay(); if (nd) { ["campFilterStatus", "campFilterMbti", "campFilterChapter"].forEach(id => $(id).value = ""); renderCampList(); const el = $("campList").querySelector(".camp-row.today"); if (el) el.scrollIntoView({ block: "center" }); } };
 ["campFilterStatus", "campFilterMbti", "campFilterChapter"].forEach(id => { $(id).onchange = renderCampList; });
 $("refreshBtn").onclick = refreshBundles;
 $("composeBtn").onclick = () => compose();

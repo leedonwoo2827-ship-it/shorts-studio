@@ -205,30 +205,27 @@
 
   <!-- 캠페인 탭 -->
   <div id="tabCampaign" style="display:none">
-    <!-- 히어로: 분할(딥틸 카피 + 실데이터 진행) -->
+    <!-- 히어로: 한 줄 컴팩트(제목 · 통계 · 진행 링 · 다음 미생산) -->
     <div class="camp-hero">
-      <div class="hero-l">
+      <div class="h-title">
         <div class="hero-eyebrow">MBTI HOOK CAMPAIGN</div>
-        <h2 class="hero-title">장 × 16유형,<br>무중복 일일 스케줄</h2>
-        <p class="hero-sub">한 라운드 = 한 MBTI로 전 장을 한 바퀴. 매일 한 편씩, 같은 (장·유형) 조합은 단 한 번.</p>
-        <div class="hero-stats">
-          <div><div class="hs-num" id="heroProduced">0</div><div class="hs-lab">생산</div></div>
-          <div><div class="hs-num" id="heroChapters">0</div><div class="hs-lab">장</div></div>
-          <div><div class="hs-num" id="heroLinked">0</div><div class="hs-lab">YT 연결</div></div>
-        </div>
+        <h2 class="hero-title">장 × 16유형 무중복 스케줄</h2>
       </div>
-      <div class="hero-r">
-        <div class="pr-label">진행률</div>
-        <div class="ring-wrap">
-          <svg width="84" height="84" viewBox="0 0 84 84">
-            <circle cx="42" cy="42" r="36" fill="none" stroke="var(--surface-strong)" stroke-width="9"/>
-            <circle id="ringArc" cx="42" cy="42" r="36" fill="none" stroke="var(--brand-teal)" stroke-width="9"
-                    stroke-linecap="round" transform="rotate(-90 42 42)" stroke-dasharray="226" stroke-dashoffset="226"/>
-          </svg>
-          <div><div class="ring-num" id="heroPct">0%</div><div class="ring-sub" id="heroRingSub">0 / 0</div></div>
-        </div>
+      <div class="h-stats">
+        <div><div class="hs-num" id="heroProduced">0</div><div class="hs-lab">생산</div></div>
+        <div><div class="hs-num" id="heroChapters">0</div><div class="hs-lab">장</div></div>
+        <div><div class="hs-num" id="heroLinked">0</div><div class="hs-lab">YT 연결</div></div>
+      </div>
+      <div class="h-ring">
+        <svg width="60" height="60" viewBox="0 0 84 84">
+          <circle cx="42" cy="42" r="36" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="9"/>
+          <circle id="ringArc" cx="42" cy="42" r="36" fill="none" stroke="var(--brand-mint)" stroke-width="9"
+                  stroke-linecap="round" transform="rotate(-90 42 42)" stroke-dasharray="226" stroke-dashoffset="226"/>
+        </svg>
+        <div><div class="ring-num" id="heroPct">0%</div><div class="ring-sub" id="heroRingSub">0 / 0</div></div>
+      </div>
+      <div class="h-next">
         <div class="hero-next" id="heroNext">다음 미생산: —</div>
-        <button id="campJumpBtn" class="ghost"><svg class="ico"><use href="#i-chevron-down"/></svg>다음 미생산으로</button>
       </div>
     </div>
 
