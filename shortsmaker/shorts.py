@@ -131,7 +131,7 @@ def _evenly_spaced(items: list, k: int) -> list:
     return [items[round(i * step)] for i in range(k)]
 
 
-def _select_scenes(bundle: Bundle, scene_types: dict, target: int) -> List[Scene]:
+def _select_scenes(bundle: Bundle, scene_types: dict, target: int, seed: int = 0) -> List[Scene]:
     usable = [s for s in bundle.scenes if s.image_path]
     no_preview = [s for s in usable if scene_types.get(s.index) != "next_preview"]
     usable = no_preview or usable
@@ -150,6 +150,10 @@ def _select_scenes(bundle: Bundle, scene_types: dict, target: int) -> List[Scene
         if s and s.index not in chosen:
             chosen.append(s.index)
     body = [s for s in usable if s.index not in chosen]
+    # seed(예: MBTI)로 본문 풀을 회전 → 같은 장이라도 다른 본문 씬(이미지)이 선택됨.
+    if body and seed:
+        off = seed % len(body)
+        body = body[off:] + body[:off]
     for s in _evenly_spaced(body, max(0, target - len(chosen))):
         if s.index not in chosen:
             chosen.append(s.index)
@@ -166,7 +170,7 @@ def _default_hashtags(title: str) -> str:
 
 
 def build_default_spec(bundle: Bundle, *, target_beats: int = 7,
-                       duration: float = 30.0, speed: float = 1.0) -> ShortsSpec:
+                       duration: float = 30.0, speed: float = 1.0, seed: int = 0) -> ShortsSpec:
     """번들에서 편집용 spec 초안 생성. speed>1 → 가속분만큼 짧아진 길이에 맞춰 타일링."""
     speed = max(0.5, min(2.0, float(speed or 1.0)))
     types = _scene_types(bundle)
@@ -187,7 +191,7 @@ def build_default_spec(bundle: Bundle, *, target_beats: int = 7,
         audio_dur = float(opening.narration_seconds_hint if opening else 0.0) or duration
     total = max(5.0, min(audio_dur / speed, duration))
 
-    selected = _select_scenes(bundle, types, target_beats)
+    selected = _select_scenes(bundle, types, target_beats, seed=seed)
     n = len(selected) or 1
     per = total / n
     beats: List[Beat] = []

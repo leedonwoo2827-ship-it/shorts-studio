@@ -100,7 +100,9 @@ async function compose(keepCampaign = false) {
   $("composeBtn").disabled = true;
   $("bundleHint").textContent = "씬 구성 중…";
   try {
-    const spec = await api("/api/spec", { method: "POST", body: JSON.stringify({ bundle_dir: dir, duration: parseFloat($("duration").value), target_beats: parseInt($("targetBeats").value, 10) }) });
+    // 캠페인 구성이면 MBTI로 seed → 같은 장이라도 다른 이미지(씬) 선택
+    const seed = (keepCampaign && CAMP.assign) ? [...CAMP.assign.mbti].reduce((a, c) => a + c.charCodeAt(0), 0) : 0;
+    const spec = await api("/api/spec", { method: "POST", body: JSON.stringify({ bundle_dir: dir, duration: parseFloat($("duration").value), target_beats: parseInt($("targetBeats").value, 10), seed }) });
     STATE.spec = spec;
     if (spec.hashtags) $("hashtags").value = spec.hashtags;
     const sc = await api("/api/scenes", { method: "POST", body: JSON.stringify({ bundle_dir: dir }) });
@@ -484,7 +486,7 @@ function renderCampList() {
         <input class="ch-date" type="date" value="${esc(r.pub_date)}" title="예약 발행일(메모)">
         <input class="ch-yt" value="${esc(r.video_id)}" placeholder="발행 후 URL/ID 붙여넣기"></span>
       <span class="c-st"><span class="st-lab">${prod ? ico("check") + "생산" : (today ? "오늘" : (hasHook ? "준비됨" : "후크 없음"))}</span>${views}</span>
-      <span class="c-act"><button class="ghost mini ch-build"${(!hasHook || prod) ? " disabled" : ""}>구성</button></span>
+      <span class="c-act"><button class="ghost mini ch-build"${!hasHook ? " disabled" : ""}>구성</button></span>
     </div>`;
   };
   // 일자순 → 라운드(=한 MBTI로 17장)별로 자동 묶어 헤더 표시. 1리스트=1라운드=17개 글.
@@ -510,7 +512,8 @@ function renderCampList() {
     const save = () => {                                 // 후크 저장(항상 가능)
       saveHook(ch, mbti, l1.value, l2.value);
       const has = !!l1.value.trim();
-      if (!prod) { build.disabled = !has; row.classList.toggle("ready", has); row.classList.toggle("empty", !has); }
+      build.disabled = !has;                             // 후크만 있으면 생산행이어도 구성 가능(재제작)
+      if (!prod) { row.classList.toggle("ready", has); row.classList.toggle("empty", !has); }
     };
     l1.onchange = save; l2.onchange = save;
     yt.onchange = () => saveVideo(ch, mbti, yt.value);

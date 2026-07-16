@@ -180,7 +180,9 @@ button.mini{height:32px;padding:0 .7rem;font-size:.78rem}
 .camp-row.done .c-mbti{color:var(--brand-mint)}
 .camp-row.done input:disabled{background:#244442;color:#d7e4e0;border-color:#356; border-color:#34534f;opacity:1}
 .camp-row.done .ch-yt input{background:var(--white);color:var(--ink);border-color:#34534f}
-.camp-row.done .ch-build[disabled]{background:#244442;color:#7fa39c;border:none}
+.camp-row.done .ch-build{background:#2c4a46;color:#dbe8e4;border:1px solid #3a5a55}
+.camp-row.done .ch-build:hover{background:#365a54}
+.camp-row.done .ch-build[disabled]{background:#244442;color:#6f938c;border:none}
 .camp-row.today{box-shadow:inset 4px 0 0 var(--warning)}
 .camp-row.today .c-st{color:var(--warning);font-weight:700}
 

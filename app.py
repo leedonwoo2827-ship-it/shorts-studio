@@ -125,6 +125,7 @@ class SpecRequest(BaseModel):
     duration: float = 30.0
     target_beats: int = 7
     speed: float = 1.0
+    seed: int = 0      # MBTI 등으로 씬(이미지) 선택을 변주
 
 
 class BeatModel(BaseModel):
@@ -443,7 +444,7 @@ async def make_spec(req: SpecRequest):
     except Exception as e:  # noqa: BLE001
         raise HTTPException(400, f"번들 로드 실패: {e}")
     spec = build_default_spec(bundle, target_beats=req.target_beats,
-                              duration=req.duration, speed=req.speed)
+                              duration=req.duration, speed=req.speed, seed=req.seed)
     return _spec_to_json(spec)
 
 
