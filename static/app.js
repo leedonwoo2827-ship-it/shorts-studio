@@ -441,7 +441,7 @@ async function loadCampaign() {
     $("campFilterChapter").innerHTML = '<option value="">전체</option>' + chapters.map(c => `<option value="${c}">${c}장</option>`).join("");
     const mbtis = [...new Set(CAMP.rows.map(r => r.mbti))];
     $("campFilterMbti").innerHTML = '<option value="">전체</option>' + mbtis.map(m => `<option value="${m}">${m}</option>`).join("");
-    renderCampList();
+    renderCampList({ focusToday: true });
   } catch (e) { $("campStatus").textContent = "로드 실패: " + e.message; }
 }
 function nextUnproducedDay() {
@@ -463,7 +463,15 @@ function renderHero() {
   const arc = $("ringArc");
   if (arc) { const C = 2 * Math.PI * 36; arc.style.strokeDasharray = C.toFixed(1); arc.style.strokeDashoffset = (C * (1 - pct)).toFixed(1); }
 }
-function renderCampList() {
+function renderCampList(opts) {
+  // innerHTML 교체는 스크롤 위치와 포커스를 날린다 → 미리 붙잡아 두고 끝에서 되돌린다.
+  const sy = window.scrollY;
+  const ae = document.activeElement;
+  const keep = (ae && ae.closest && ae.closest(".camp-row"))
+    ? { ch: ae.closest(".camp-row").dataset.ch, mbti: ae.closest(".camp-row").dataset.mbti,
+        cls: (ae.className || "").split(/\s+/).find(c => c.startsWith("ch-")) || "",
+        pos: ae.selectionStart }
+    : null;
   const fs = $("campFilterStatus").value, fm = $("campFilterMbti").value, fc = $("campFilterChapter").value;
   const nd = nextUnproducedDay();
   const rows = CAMP.rows.filter(r =>
@@ -521,9 +529,25 @@ function renderCampList() {
     dt.onchange = () => savePubDate(ch, mbti, dt.value);
     build.onclick = () => applyAssignment(ch, mbti, l1.value, l2.value, mood);
   });
-  // '다음 미생산' 행을 sticky 헤더 바로 아래(상단 정렬)로 이동 → 1장이 안 가려짐. scroll-margin-top 반영.
-  const t = $("campList").querySelector(".camp-row.today");
-  if (t) t.scrollIntoView({ block: "start" });
+  // '다음 미생산' 행으로 이동은 **명시적으로 요청할 때만**(최초 로드·[다음 미생산으로]).
+  // YT주소·발행일을 입력한 뒤의 재렌더에서 자동 이동하면 보던 자리를 잃는다(화면이 맨 위로 튐).
+  if (opts && opts.focusToday) {
+    // sticky 헤더(앱64+그룹) 높이는 .camp-row{scroll-margin-top} 이 처리한다.
+    const t = $("campList").querySelector(".camp-row.today");
+    if (t) t.scrollIntoView({ block: "start" });
+    return;
+  }
+  window.scrollTo(0, sy);                       // 스크롤 위치 복원
+  if (keep && keep.cls) {                       // 방금 고치던 칸으로 포커스 복원
+    const row = $("campList").querySelector(`.camp-row[data-ch="${keep.ch}"][data-mbti="${keep.mbti}"]`);
+    const el = row && row.querySelector("." + keep.cls);
+    if (el) {
+      el.focus({ preventScroll: true });
+      if (keep.pos != null && el.setSelectionRange) {
+        try { el.setSelectionRange(keep.pos, keep.pos); } catch (_) {}
+      }
+    }
+  }
 }
 async function savePubDate(chapter, mbti, date) {
   try {
@@ -713,7 +737,7 @@ $("campGenAllBtn").onclick = genAllChapterHooks;
 $("campMoodBtn").onclick = loadMoods;
 $("campViewsBtn").onclick = refreshViews;
 $("campInsightBtn").onclick = loadInsights;
-["campFilterStatus", "campFilterMbti", "campFilterChapter"].forEach(id => { $(id).onchange = renderCampList; });
+["campFilterStatus", "campFilterMbti", "campFilterChapter"].forEach(id => { $(id).onchange = () => renderCampList(); });
 $("refreshBtn").onclick = refreshBundles;
 $("composeBtn").onclick = () => compose();
 $("aiFillHookBtn").onclick = regenHook;
