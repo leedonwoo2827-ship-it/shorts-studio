@@ -54,10 +54,13 @@ async function loadModels() {
 }
 async function applyModel() {
   const sel = $("llmModel"); if (!sel) return;
+  const btn = $("llmModelApplyBtn"), info = $("llmModelInfo");
+  btn.disabled = true; if (info) info.textContent = "동작 확인 중… (" + (sel.value || "기본값") + ")";
   try {
     const r = await api("/api/llm/model", { method: "POST", body: JSON.stringify({ model: sel.value }) });
-    if ($("llmModelInfo")) $("llmModelInfo").textContent = "현재 적용: " + ((r && r.model) || "기본 모델");
-  } catch (e) { alert("모델 적용 실패: " + e.message); }
+    if (info) info.textContent = "✓ 현재 적용: " + ((r && r.model) || "기본 모델") + " (동작 확인됨)";
+  } catch (e) { alert("모델 적용 실패: " + e.message); await loadModels(); }
+  finally { btn.disabled = false; }
 }
 async function llmSetProvider(p) {
   try { const r = await api("/api/llm/provider", { method: "POST", body: JSON.stringify({ provider: p }) }); applyLlmStatus(r.status ? statusFrom(r.status) : null); await llmRefresh(); }

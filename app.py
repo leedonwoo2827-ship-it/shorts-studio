@@ -224,10 +224,20 @@ async def llm_models():
 
 @app.post("/api/llm/model")
 async def llm_set_model(req: ModelReq):
+    # 목록에 떠도 계정 구독에 따라 실제로는 안 되는 모델이 있다(예: gpt-5.5 404, 기본값 gpt-6-astra 400).
+    # → 적용 즉시 짧은 호출로 확인하고, 실패하면 이전 모델로 되돌린다(조용히 깨진 상태로 두지 않음).
+    prev = await asyncio.to_thread(llm.get_model)
     try:
-        return await asyncio.to_thread(llm.set_model, req.model)
+        r = await asyncio.to_thread(llm.set_model, req.model)
     except llm.LLMUnavailable as e:
         raise HTTPException(400, str(e))
+    try:
+        await asyncio.to_thread(llm.complete, "OK 라고만 답하세요.", max_tokens=10)
+    except Exception:  # noqa: BLE001  (브리지 오류문은 잘려 와서 원인 표시는 생략)
+        await asyncio.to_thread(llm.set_model, prev)
+        raise HTTPException(400, f"'{req.model or '기본값'}' 은(는) 이 계정에서 동작하지 않아 "
+                                 f"이전 모델({prev or '기본값'})로 되돌렸습니다.")
+    return r
 
 
 # ---------------- 캠페인 (MBTI 후크 × 무중복 스케줄) ----------------
