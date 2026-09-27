@@ -258,7 +258,7 @@ async function verifyOne(i, btn) {
     const d = await api("/api/verify", { method: "POST", body: JSON.stringify({ scenes: [{ scene_index: b.scene_index, narration: s.narration || "", caption: b.caption }] }) });
     const v = d[b.scene_index];
     if (v) { b._verify = v; renderBeats(); }   // 결과를 자막 밑에 인라인 표시
-    else { btn.disabled = false; btn.innerHTML = ico("search") + "검토"; }
+    else { $("aiStatus").textContent = "검토 실패: LLM 응답에서 결과를 읽지 못함"; btn.disabled = false; btn.innerHTML = ico("search") + "검토"; }
   } catch (e) { $("aiStatus").textContent = "검토 실패: " + e.message; btn.disabled = false; btn.innerHTML = ico("search") + "검토"; }
 }
 async function verifyContent() {
@@ -267,6 +267,7 @@ async function verifyContent() {
   $("verifyBtn").disabled = true; $("aiStatus").textContent = "전체 내용 검증 중…";
   try {
     const d = await api("/api/verify", { method: "POST", body: JSON.stringify({ scenes }) });
+    if (!d || !Object.keys(d).length) throw new Error("LLM 응답에서 결과를 읽지 못함 (LLM 상태 확인)");
     let ng = 0;
     STATE.spec.beats.forEach(b => { const v = d[b.scene_index]; if (v) { b._verify = v; if (!v.ok) ng++; } });
     renderBeats();

@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -162,6 +163,7 @@ def _agy_complete(prompt: str) -> str:
     argv = [path, "--print", full, "--dangerously-skip-permissions"] + (["--model", model] if model else [])
     out = _pty_capture(argv, _TIMEOUT)         # agy는 콘솔 출력 → PTY 우선
     if out is not None and _clean(out):
+        _raise_agy_error(_clean(out))
         return _clean(out)
     # 폴백: 일반 subprocess (pywinpty 없을 때)
     proc = subprocess.run([path, "--print", full], capture_output=True, text=True,
@@ -169,7 +171,19 @@ def _agy_complete(prompt: str) -> str:
     text = _clean(proc.stdout or "")
     if not text:
         raise RuntimeError("agy 응답 없음 (pywinpty 설치 권장: pip install pywinpty)")
+    _raise_agy_error(text)
     return text
+
+
+def _raise_agy_error(text: str) -> None:
+    """agy 는 오류(쿼터 소진 429 등)도 stdout 으로 찍는다 → 응답으로 오인하지 않게 예외로."""
+    m = re.search(r'AGY_ERROR:\s*(\{.*\})', text)
+    if m:
+        try:
+            msg = json.loads(m.group(1)).get("short_error") or m.group(1)
+        except Exception:
+            msg = m.group(1)
+        raise RuntimeError(f"agy 오류: {msg[:200]}")
 
 
 def complete(prompt: str, *, max_tokens: int = 800) -> str:
