@@ -209,6 +209,13 @@ button.mini{height:32px;padding:0 .7rem;font-size:.78rem}
 .chart-row .cbar{height:18px;background:var(--surface-strong);border-radius:var(--r-xs);overflow:hidden}
 .chart-row .cbar>span{display:block;height:100%;background:var(--brand-coral);border-radius:var(--r-xs)}
 .chart-row .cv{text-align:right;color:var(--body);font-weight:600}
+.camp-insights .ins-top{margin-top:1.6rem}
+.ins-top table{width:100%;border-collapse:collapse;font-size:.8rem}
+.ins-top th{text-align:left;color:var(--muted);font-weight:600;padding:.35rem .5rem;border-bottom:1px solid var(--hairline)}
+.ins-top td{padding:.45rem .5rem;border-bottom:1px solid var(--hairline);color:var(--body);vertical-align:top}
+.ins-top .tc,.ins-top .tm{font-weight:700;color:var(--accent);white-space:nowrap}
+.ins-top .tv{text-align:right;font-weight:600;white-space:nowrap}
+.ins-top a{color:var(--accent);white-space:nowrap}
 
 @media(max-width:860px){
   .camp-hero{grid-template-columns:1fr}

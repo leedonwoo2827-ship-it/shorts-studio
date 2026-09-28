@@ -596,8 +596,18 @@ async function loadInsights() {
       return `<div class="ins-col"><h4>${title}</h4>${rows}</div>`;
     };
     box.innerHTML = `<div class="ins-note">표본 ${d.samples}개의 '최신 조회수' 기준 평균 — 어떤 유형/장이 잘 먹히는지.</div>
-      <div class="ins-grid">${chart("MBTI별 평균 조회수", d.by_mbti, k => k)}${chart("장별 평균 조회수", d.by_chapter, k => k + "장")}</div>`;
+      <div class="ins-grid">${chart("MBTI별 평균 조회수", d.by_mbti, k => k)}${chart("장별 평균 조회수", d.by_chapter, k => k + "장")}</div>
+      ${topTable(d.top_by_chapter || [])}`;
   } catch (e) { box.innerHTML = "인사이트 실패: " + e.message; }
+}
+// 장별 최고 조회수 영상 — 각 장에서 이긴 MBTI 후크와 링크(조회수 내림차순)
+function topTable(arr) {
+  if (!arr.length) return "";
+  const rows = arr.map(x => `<tr><td class="tc">${x.chapter}장</td><td class="tm">${esc(x.mbti)}</td>`
+    + `<td class="th">${esc(x.hook || "")}</td><td class="tv">${x.views.toLocaleString()}</td>`
+    + `<td>${x.video_id ? `<a href="https://youtu.be/${encodeURIComponent(x.video_id)}" target="_blank" rel="noopener">보기</a>` : ""}</td></tr>`).join("");
+  return `<div class="ins-top"><h4>장별 최고 조회수 영상</h4>
+    <table><thead><tr><th>장</th><th>MBTI</th><th>후크</th><th class="tv">조회수</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 async function saveHook(chapter, mbti, line1, line2) {
   try {

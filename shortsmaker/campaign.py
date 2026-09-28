@@ -390,7 +390,9 @@ def insights() -> dict:
     camp = ensure_campaign()
     with _conn() as cx:
         rows = cx.execute(
-            "SELECT s.chapter,s.mbti,v.view_count FROM slot s JOIN view_stat v ON v.slot_id=s.id "
+            "SELECT s.chapter,s.mbti,s.youtube_video_id,h.line1,h.line2,v.view_count "
+            "FROM slot s JOIN view_stat v ON v.slot_id=s.id "
+            "LEFT JOIN hook h ON h.campaign_id=s.campaign_id AND h.chapter=s.chapter AND h.mbti=s.mbti "
             "WHERE s.campaign_id=? AND v.id=(SELECT id FROM view_stat v2 WHERE v2.slot_id=s.id "
             "ORDER BY fetched_at DESC, id DESC LIMIT 1)", (camp["id"],)).fetchall()
     by_mbti: dict = {}
@@ -404,6 +406,17 @@ def insights() -> dict:
                 "total": sum(v), "max": max(v)} for k, v in d.items()]
         return sorted(out, key=lambda x: -x["avg"])
 
+    # 장별 최고 조회수 영상 1개 — 그 장에서 어떤 MBTI 후크가 이겼나
+    best: dict = {}
+    for r in rows:
+        b = best.get(r["chapter"])
+        if b is None or r["view_count"] > b["views"]:
+            best[r["chapter"]] = {"chapter": r["chapter"], "mbti": r["mbti"], "views": r["view_count"],
+                                  "video_id": r["youtube_video_id"] or "",
+                                  "hook": " / ".join(x for x in (r["line1"], r["line2"]) if x)}
+    top = sorted(best.values(), key=lambda x: -x["views"])
+
     return {"samples": len(rows),
             "by_mbti": agg(by_mbti, "mbti"),
-            "by_chapter": agg(by_chapter, "chapter")}
+            "by_chapter": agg(by_chapter, "chapter"),
+            "top_by_chapter": top}
